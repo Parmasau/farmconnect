@@ -11,7 +11,7 @@ class Message extends Model
     use HasFactory;
 
     protected $fillable = [
-        'sender_id', 'receiver_id', 'content', 'read_at'
+        'sender_id', 'receiver_id', 'body', 'read_at'  // Changed from 'content' to 'body'
     ];
 
     protected $casts = [

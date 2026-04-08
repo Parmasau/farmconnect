@@ -3,7 +3,7 @@
 @section('title', 'Analytics - FarmConnect')
 
 @section('sidebar')
-    @include('farmer.dashboard')
+    @include('farmer.sidebar')
 @endsection
 
 @section('content')
@@ -11,26 +11,31 @@
     <h1 class="text-2xl font-bold">Analytics Dashboard</h1>
     
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white rounded-xl shadow p-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
             <div class="text-3xl mb-2">📦</div>
             <div class="text-2xl font-bold text-green-700">{{ $totalProducts ?? 0 }}</div>
             <div class="text-sm text-gray-500">Total Products</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6">
+        <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
             <div class="text-3xl mb-2">🛒</div>
             <div class="text-2xl font-bold text-green-700">{{ $totalOrders ?? 0 }}</div>
             <div class="text-sm text-gray-500">Total Orders</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6">
+        <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
             <div class="text-3xl mb-2">💰</div>
             <div class="text-2xl font-bold text-green-700">KSh {{ number_format($totalRevenue ?? 0, 2) }}</div>
             <div class="text-sm text-gray-500">Total Revenue</div>
         </div>
+        <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
+            <div class="text-3xl mb-2">⭐</div>
+            <div class="text-2xl font-bold text-green-700">{{ $averageRating ?? 0 }}</div>
+            <div class="text-sm text-gray-500">Avg Rating</div>
+        </div>
     </div>
     
     <!-- Monthly Sales Chart -->
-    <div class="bg-white rounded-xl shadow p-6">
+    <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
         <h2 class="text-lg font-semibold mb-4">Monthly Sales</h2>
         @if(isset($monthlySales) && $monthlySales->count() > 0)
             <div class="overflow-x-auto">
@@ -62,6 +67,29 @@
             </div>
         @else
             <p class="text-gray-500 text-center py-4">No sales data available yet.</p>
+        @endif
+    </div>
+    
+    <!-- Top Selling Products -->
+    <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Top Selling Products</h2>
+        @if(isset($topProducts) && $topProducts->count() > 0)
+            <div class="space-y-3">
+                @foreach($topProducts as $product)
+                    <div class="flex justify-between items-center py-2 border-b">
+                        <div>
+                            <p class="font-medium">{{ $product->name }}</p>
+                            <p class="text-sm text-gray-500">{{ ucfirst($product->category) }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-semibold text-green-700">{{ $product->total_sold ?? 0 }} sold</p>
+                            <p class="text-sm text-gray-500">KSh {{ number_format($product->total_revenue ?? 0, 2) }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <p class="text-gray-500 text-center py-4">No sales data available.</p>
         @endif
     </div>
     

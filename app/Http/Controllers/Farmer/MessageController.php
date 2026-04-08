@@ -26,48 +26,6 @@ class MessageController extends Controller
         return view('farmer.messages.index', compact('messages'));
     }
     
-    public function show($userId)
-    {
-        $otherUser = User::findOrFail($userId);
-        
-        $messages = Message::where(function($query) use ($userId) {
-                                $query->where('sender_id', Auth::id())
-                                      ->where('receiver_id', $userId);
-                            })
-                            ->orWhere(function($query) use ($userId) {
-                                $query->where('sender_id', $userId)
-                                      ->where('receiver_id', Auth::id());
-                            })
-                            ->with(['sender', 'receiver'])
-                            ->orderBy('created_at', 'asc')
-                            ->get();
-        
-        // Update read status - using read_at instead of is_read
-        Message::where('sender_id', $userId)
-              ->where('receiver_id', Auth::id())
-              ->whereNull('read_at')
-              ->update(['read_at' => now()]);
-        
-        return view('farmer.messages.show', compact('otherUser', 'messages'));
-    }
-    
-    public function send(Request $request, $userId)
-    {
-        $request->validate([
-            'message' => 'required|string|max:1000',
-        ]);
-        
-        Message::create([
-            'sender_id' => Auth::id(),
-            'receiver_id' => $userId,
-            'content' => $request->message,
-            'read_at' => null,
-        ]);
-        
-        return redirect()->route('farmer.messages.show', $userId)
-                         ->with('success', 'Message sent successfully!');
-    }
-    
     public function create(Request $request)
     {
         $farmerId = $request->get('farmer_id');
@@ -85,6 +43,49 @@ class MessageController extends Controller
         }
         
         return view('farmer.messages.create', compact('receiver', 'product'));
+    }
+    
+    public function show($userId)
+    {
+        $otherUser = User::findOrFail($userId);
+        
+        $messages = Message::where(function($query) use ($userId) {
+                                $query->where('sender_id', Auth::id())
+                                      ->where('receiver_id', $userId);
+                            })
+                            ->orWhere(function($query) use ($userId) {
+                                $query->where('sender_id', $userId)
+                                      ->where('receiver_id', Auth::id());
+                            })
+                            ->with(['sender', 'receiver'])
+                            ->orderBy('created_at', 'asc')
+                            ->get();
+        
+        // Update read status using read_at
+        Message::where('sender_id', $userId)
+              ->where('receiver_id', Auth::id())
+              ->whereNull('read_at')
+              ->update(['read_at' => now()]);
+        
+        return view('farmer.messages.show', compact('otherUser', 'messages'));
+    }
+    
+    public function send(Request $request, $userId)
+    {
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+        
+        // Use 'body' instead of 'content'
+        Message::create([
+            'sender_id' => Auth::id(),
+            'receiver_id' => $userId,
+            'body' => $request->message,  // Changed from 'content' to 'body'
+            'read_at' => null,
+        ]);
+        
+        return redirect()->route('farmer.messages.show', $userId)
+                         ->with('success', 'Message sent successfully!');
     }
     
     public function unreadCount()

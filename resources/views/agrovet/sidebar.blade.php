@@ -2,10 +2,10 @@
     <a href="{{ route('agrovet.dashboard') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white {{ request()->routeIs('agrovet.dashboard') ? 'bg-white/20' : '' }}">
         <i class="fas fa-tachometer-alt w-5"></i> Dashboard
     </a>
-    <a href="{{ route('agrovet.products.index') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white {{ request()->routeIs('agrovet.products.index') ? 'bg-white/20' : '' }}">
+    <a href="{{ route('agrovet.products.index') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white {{ request()->routeIs('agrovet.products.*') ? 'bg-white/20' : '' }}">
         <i class="fas fa-box w-5"></i> My Products
     </a>
-    <a href="{{ route('agrovet.orders.index') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white {{ request()->routeIs('agrovet.orders.index') ? 'bg-white/20' : '' }}">
+    <a href="{{ route('agrovet.orders.index') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white {{ request()->routeIs('agrovet.orders.*') ? 'bg-white/20' : '' }}">
         <i class="fas fa-shopping-cart w-5"></i> Orders
     </a>
     <a href="{{ route('agrovet.advice.index') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white {{ request()->routeIs('agrovet.advice.*') ? 'bg-white/20' : '' }}">
@@ -20,7 +20,17 @@
     <a href="{{ route('agrovet.analytics.index') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white">
         <i class="fas fa-chart-line w-5"></i> Analytics
     </a>
+    
     <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/20 text-white mt-4 border-t border-white/20 pt-4">
         <i class="fas fa-user-circle w-5"></i> My Profile
     </a>
+    
+    <div class="pt-2">
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-600/80 text-white w-full transition-colors">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </form>
+    </div>
 </div>

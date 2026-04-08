@@ -1,9 +1,11 @@
 <?php
+// app/Http/Controllers/Farmer/ProductController.php
 
 namespace App\Http\Controllers\Farmer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -12,6 +14,7 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    // Products the farmer is selling
     public function index()
     {
         $products = Product::where('farmer_id', Auth::id())
@@ -21,23 +24,68 @@ class ProductController extends Controller
         return view('farmer.products.index', compact('products'));
     }
 
+    // Products the farmer has purchased (bought from others)
+    public function purchased()
+    {
+        $purchasedProducts = Order::where('buyer_id', Auth::id())
+                                 ->with('items.product')
+                                 ->orderBy('created_at', 'desc')
+                                 ->paginate(15);
+        
+        return view('farmer.products.purchased', compact('purchasedProducts'));
+    }
+
+    // Show agrovet products for farmers to buy
+    public function agrovetProducts(Request $request)
+    {
+        $query = Product::where('user_id', '!=', Auth::id())
+                       ->where('status', 'active')
+                       ->where('quantity', '>', 0)
+                       ->where('product_type', 'sell')
+                       ->with('seller');
+        
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%")
+                  ->orWhere('category', 'LIKE', "%{$search}%")
+                  ->orWhereHas('seller', function($q) use ($search) {
+                      $q->where('name', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+        
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+        
+        $products = $query->paginate(20);
+        
+        $categories = Product::where('status', 'active')
+                            ->distinct()
+                            ->pluck('category')
+                            ->filter()
+                            ->values();
+        
+        return view('farmer.products.agrovet', compact('products', 'categories'));
+    }
+
+    // View a single agrovet product
+    public function viewAgrovet($id)
+    {
+        $product = Product::where('id', $id)
+                         ->where('status', 'active')
+                         ->where('quantity', '>', 0)
+                         ->with('seller')
+                         ->firstOrFail();
+        
+        return view('farmer.products.view_agrovet', compact('product'));
+    }
+
     public function create()
     {
-        $categories = [
-        'Vegetables' => 'Vegetables',
-        'Fruits' => 'Fruits',
-        'Grains' => 'Grains',
-        'Dairy' => 'Dairy',
-        'Meat' => 'Meat',
-        'Seeds' => 'Seeds',
-        'Fertilizer' => 'Fertilizer',
-        'Equipment' => 'Equipment',
-        'Pesticides' => 'Pesticides',
-        'Other' => 'Other',
-    ];
-    
-    return view('farmer.products.create', compact('categories'));
-}
+        return view('farmer.products.create');
     }
 
     public function store(Request $request)
@@ -52,10 +100,21 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
         ]);
 
+        // Generate unique slug
+        $slug = Str::slug($request->name);
+        $originalSlug = $slug;
+        $counter = 1;
+        
+        while (Product::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
         $data = $request->all();
         $data['farmer_id'] = Auth::id();
-        $data['slug'] = Str::slug($request->name);
-        $data['status'] = 'available';
+        $data['user_id'] = Auth::id(); // Add this for compatibility
+        $data['slug'] = $slug;
+        $data['status'] = 'active';
         $data['product_type'] = 'sell';
 
         if ($request->hasFile('image')) {
@@ -65,7 +124,7 @@ class ProductController extends Controller
         Product::create($data);
 
         return redirect()->route('farmer.products.index')
-                         ->with('success', 'Product added successfully!');
+                         ->with('success', 'Product added successfully! Other farmers can now see your product.');
     }
 
     public function show(Product $product)
@@ -103,7 +162,18 @@ class ProductController extends Controller
         ]);
 
         $data = $request->except('image');
-        $data['slug'] = Str::slug($request->name);
+        
+        if ($product->name !== $request->name) {
+            $slug = Str::slug($request->name);
+            $originalSlug = $slug;
+            $counter = 1;
+            
+            while (Product::where('slug', $slug)->where('id', '!=', $product->id)->exists()) {
+                $slug = $originalSlug . '-' . $counter;
+                $counter++;
+            }
+            $data['slug'] = $slug;
+        }
 
         if ($request->hasFile('image')) {
             if ($product->image) {
@@ -138,37 +208,31 @@ class ProductController extends Controller
     {
         $sellerType = $request->get('seller', 'farmer');
         
-        $query = Product::where('status', 'available')
+        $query = Product::where('status', 'active')
                        ->where('quantity', '>', 0)
+                       ->where('product_type', 'sell')
                        ->with('farmer');
         
         if ($sellerType === 'farmer') {
             $query->where('farmer_id', '!=', Auth::id());
         }
         
-        // Search filter
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('description', 'LIKE', "%{$search}%");
-                
-                if (Schema::hasColumn('products', 'category')) {
-                    $q->orWhere('category', 'LIKE', "%{$search}%");
-                }
-                  
-                $q->orWhereHas('farmer', function($q) use ($search) {
-                    $q->where('name', 'LIKE', "%{$search}%");
-                });
+                  ->orWhere('description', 'LIKE', "%{$search}%")
+                  ->orWhere('category', 'LIKE', "%{$search}%")
+                  ->orWhereHas('farmer', function($q) use ($search) {
+                      $q->where('name', 'LIKE', "%{$search}%");
+                  });
             });
         }
         
-        // Category filter
-        if ($request->filled('category') && Schema::hasColumn('products', 'category')) {
+        if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
         
-        // Price range filter
         if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->min_price);
         }
@@ -177,7 +241,6 @@ class ProductController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
         
-        // Sorting
         switch ($request->sort) {
             case 'price_low':
                 $query->orderBy('price', 'asc');
@@ -192,16 +255,11 @@ class ProductController extends Controller
         
         $products = $query->paginate(20);
         
-        // Get categories
-        $categories = collect([]);
-        if (Schema::hasColumn('products', 'category')) {
-            $categories = Product::where('status', 'available')
-                                ->whereNotNull('category')
-                                ->distinct()
-                                ->pluck('category')
-                                ->filter()
-                                ->values();
-        }
+        $categories = Product::where('status', 'active')
+                            ->distinct()
+                            ->pluck('category')
+                            ->filter()
+                            ->values();
         
         return view('farmer.products.marketplace', compact('products', 'categories', 'sellerType'));
     }
@@ -210,13 +268,13 @@ class ProductController extends Controller
     {
         $product = Product::where('id', $id)
                          ->where('farmer_id', '!=', Auth::id())
-                         ->where('status', 'available')
+                         ->where('status', 'active')
                          ->where('quantity', '>', 0)
                          ->with('farmer')
                          ->firstOrFail();
         
         $sellerProducts = Product::where('farmer_id', $product->farmer_id)
-                                ->where('status', 'available')
+                                ->where('status', 'active')
                                 ->where('quantity', '>', 0)
                                 ->where('id', '!=', $product->id)
                                 ->limit(4)
@@ -235,42 +293,4 @@ class ProductController extends Controller
         
         return redirect()->route('farmer.messages.create', ['farmer_id' => $product->farmer_id, 'product_id' => $productId]);
     }
-}
-
-public function agrovetProducts(Request $request)
-{
-    $query = Product::where('user_id', '!=', Auth::id())
-                   ->where('status', 'available')
-                   ->where('quantity', '>', 0)
-                   ->where('product_type', 'sell')
-                   ->with('farmer');
-    
-    // Search filter
-    if ($request->filled('search')) {
-        $search = $request->search;
-        $query->where(function($q) use ($search) {
-            $q->where('name', 'LIKE', "%{$search}%")
-              ->orWhere('description', 'LIKE', "%{$search}%")
-              ->orWhere('category', 'LIKE', "%{$search}%")
-              ->orWhereHas('farmer', function($q) use ($search) {
-                  $q->where('name', 'LIKE', "%{$search}%");
-              });
-        });
-    }
-    
-    // Category filter
-    if ($request->filled('category')) {
-        $query->where('category', $request->category);
-    }
-    
-    $products = $query->paginate(20);
-    
-    $categories = Product::where('user_id', '!=', Auth::id())
-                        ->where('status', 'available')
-                        ->distinct()
-                        ->pluck('category')
-                        ->filter()
-                        ->values();
-    
-    return view('farmer.products.agrovet', compact('products', 'categories'));
 }

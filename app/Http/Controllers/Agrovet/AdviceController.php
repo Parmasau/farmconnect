@@ -30,8 +30,10 @@ class AdviceController extends Controller
         return view('agrovet.advice.index', compact('adviceRequests', 'stats'));
     }
 
-    public function show(AdviceRequest $advice)
+    public function show($adviceRequest)
     {
+        $advice = AdviceRequest::with('farmer')->findOrFail($adviceRequest);
+        
         // Check if agrovet is assigned or if it's unassigned
         if ($advice->assigned_agrovet_id !== null && $advice->assigned_agrovet_id !== Auth::id()) {
             abort(403);
@@ -40,8 +42,10 @@ class AdviceController extends Controller
         return view('agrovet.advice.show', compact('advice'));
     }
 
-    public function respond(Request $request, AdviceRequest $advice)
+    public function respond(Request $request, $adviceRequest)
     {
+        $advice = AdviceRequest::findOrFail($adviceRequest);
+        
         // Check if agrovet is assigned or if it's unassigned
         if ($advice->assigned_agrovet_id !== null && $advice->assigned_agrovet_id !== Auth::id()) {
             abort(403);
@@ -60,19 +64,5 @@ class AdviceController extends Controller
 
         return redirect()->route('agrovet.advice.show', $advice)
                          ->with('success', 'Response sent successfully to the farmer!');
-    }
-    
-    public function assign(Request $request, AdviceRequest $advice)
-    {
-        $request->validate([
-            'agrovet_id' => 'required|exists:users,id',
-        ]);
-
-        $advice->update([
-            'assigned_agrovet_id' => $request->agrovet_id,
-            'status' => 'assigned',
-        ]);
-
-        return back()->with('success', 'Advice request assigned successfully.');
     }
 }

@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Agrovet/MessageController.php
 
 namespace App\Http\Controllers\Agrovet;
 
@@ -12,32 +13,57 @@ class MessageController extends Controller
 {
     public function index()
     {
-        $userId = Auth::id();
-        $conversations = Message::with(['sender', 'receiver'])
-            ->where('sender_id', $userId)->orWhere('receiver_id', $userId)
-            ->latest()->get()
-            ->groupBy(fn($m) => $m->sender_id === $userId ? $m->receiver_id : $m->sender_id)
-            ->map(fn($msgs) => $msgs->first());
-
-        return view('agrovet.messages.index', compact('conversations'));
+        $messages = Message::where('sender_id', Auth::id())
+                          ->orWhere('receiver_id', Auth::id())
+                          ->with(['sender', 'receiver'])
+                          ->orderBy('created_at', 'desc')
+                          ->get()
+                          ->unique(function($message) {
+                              return $message->sender_id == Auth::id() ? $message->receiver_id : $message->sender_id;
+                          });
+        
+        return view('agrovet.messages.index', compact('messages'));
     }
 
-    public function show(User $farmer)
+    public function show($farmerId)
     {
-        $userId = Auth::id();
-        $messages = Message::where(fn($q) => $q->where('sender_id', $userId)->where('receiver_id', $farmer->id))
-            ->orWhere(fn($q) => $q->where('sender_id', $farmer->id)->where('receiver_id', $userId))
-            ->orderBy('created_at')->get();
-
-        $messages->each(fn($m) => $m->receiver_id === $userId ? $m->markRead() : null);
-
+        $farmer = User::findOrFail($farmerId);
+        
+        $messages = Message::where(function($query) use ($farmerId) {
+                                $query->where('sender_id', Auth::id())
+                                      ->where('receiver_id', $farmerId);
+                            })
+                            ->orWhere(function($query) use ($farmerId) {
+                                $query->where('sender_id', $farmerId)
+                                      ->where('receiver_id', Auth::id());
+                            })
+                            ->with(['sender', 'receiver'])
+                            ->orderBy('created_at', 'asc')
+                            ->get();
+        
+        // Mark messages as read
+        Message::where('sender_id', $farmerId)
+              ->where('receiver_id', Auth::id())
+              ->whereNull('read_at')
+              ->update(['read_at' => now()]);
+        
         return view('agrovet.messages.show', compact('farmer', 'messages'));
     }
 
-    public function send(Request $request, User $farmer)
+    public function send(Request $request, $farmerId)
     {
-        $request->validate(['body' => 'required|string|max:1000']);
-        Message::create(['sender_id' => Auth::id(), 'receiver_id' => $farmer->id, 'body' => $request->body]);
-        return back()->with('success', 'Message sent.');
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ]);
+        
+        Message::create([
+            'sender_id' => Auth::id(),
+            'receiver_id' => $farmerId,
+            'body' => $request->message,
+            'read_at' => null,
+        ]);
+        
+        return redirect()->route('agrovet.messages.show', $farmerId)
+                         ->with('success', 'Message sent successfully!');
     }
 }

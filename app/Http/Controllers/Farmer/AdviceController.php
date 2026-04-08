@@ -49,11 +49,11 @@ class AdviceController extends Controller
             'assigned_agrovet_id' => $data['agrovet_id'] ?? null,
             'subject' => $data['subject'],
             'message' => $data['message'],
-            'status' => $data['agrovet_id'] ? 'assigned' : 'pending',
+            'status' => 'pending',
         ]);
         
         return redirect()->route('farmer.advice.index')
-                         ->with('success', 'Advice request sent successfully!');
+                         ->with('success', 'Advice request submitted successfully!');
     }
 
     public function show(AdviceRequest $advice)

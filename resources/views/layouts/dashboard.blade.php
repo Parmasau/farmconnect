@@ -32,15 +32,11 @@
             background: linear-gradient(135deg, rgba(22, 101, 52, 0.95), rgba(21, 128, 61, 0.95));
             backdrop-filter: blur(10px);
         }
-        .card-bg {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(5px);
-        }
     </style>
 </head>
 <body class="bg-farm">
     <div class="flex h-screen">
-        <!-- Sidebar -->
+        <!-- Sidebar Only - No Top Navbar -->
         <aside class="w-64 sidebar-bg text-white flex flex-col shadow-xl">
             <div class="p-4 text-xl font-bold border-b border-white/20">🌱 FarmConnect</div>
             <nav class="flex-1 p-4 overflow-y-auto">

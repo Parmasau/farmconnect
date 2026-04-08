@@ -5,6 +5,7 @@ use App\Http\Controllers\Public\MarketplaceController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\ContactController;
 
 // Public Routes
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -12,6 +13,9 @@ Route::get('/marketplace', [MarketplaceController::class, 'index'])->name('marke
 Route::get('/marketplace/search', [MarketplaceController::class, 'search'])->name('marketplace.search');
 Route::get('/marketplace/category/{category:slug}', [MarketplaceController::class, 'category'])->name('marketplace.category');
 Route::get('/marketplace/product/{product:slug}', [MarketplaceController::class, 'show'])->name('marketplace.show');
+
+// Contact Form Submission
+Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 
 // Guest Routes
 Route::middleware('guest')->group(function () {
@@ -43,7 +47,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/checkout', [App\Http\Controllers\CartController::class, 'processCheckout'])->name('process');
     });
 
-    // Admin
+    // Admin Routes
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
         Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
@@ -60,11 +64,14 @@ Route::middleware('auth')->group(function () {
         
         // Products Management
         Route::resource('products', App\Http\Controllers\Farmer\ProductController::class);
+        Route::get('/products/purchased', [App\Http\Controllers\Farmer\ProductController::class, 'purchased'])->name('products.purchased');
         
         // Products Marketplace (Farmer to Farmer)
         Route::get('/products-marketplace', [App\Http\Controllers\Farmer\ProductController::class, 'marketplace'])->name('products.marketplace');
         Route::get('/products-view/{id}', [App\Http\Controllers\Farmer\ProductController::class, 'viewProduct'])->name('products.view');
         Route::get('/products-contact/{productId}', [App\Http\Controllers\Farmer\ProductController::class, 'contactSeller'])->name('products.contact');
+        Route::get('/agrovet-products', [App\Http\Controllers\Farmer\ProductController::class, 'agrovetProducts'])->name('products.agrovet');
+        Route::get('/view-agrovet/{id}', [App\Http\Controllers\Farmer\ProductController::class, 'viewAgrovet'])->name('products.viewAgrovet');
 
         // Orders
         Route::prefix('orders')->name('orders.')->group(function () {
@@ -100,26 +107,39 @@ Route::middleware('auth')->group(function () {
     // Agrovet Routes
     Route::middleware('role:agrovet')->prefix('agrovet')->name('agrovet.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Agrovet\DashboardController::class, 'index'])->name('dashboard');
+        
+        // Products
         Route::resource('products', App\Http\Controllers\Agrovet\ProductController::class);
         Route::patch('/products/{product}/stock', [App\Http\Controllers\Agrovet\ProductController::class, 'updateStock'])->name('products.stock');
 
+        // Orders
         Route::get('/orders', [App\Http\Controllers\Agrovet\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [App\Http\Controllers\Agrovet\OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [App\Http\Controllers\Agrovet\OrderController::class, 'updateStatus'])->name('orders.status');
+        Route::patch('/orders/{order}/approve-payment', [App\Http\Controllers\Agrovet\OrderController::class, 'approvePayment'])->name('orders.approvePayment');
 
+        // Advice
         Route::get('/advice', [App\Http\Controllers\Agrovet\AdviceController::class, 'index'])->name('advice.index');
         Route::get('/advice/{adviceRequest}', [App\Http\Controllers\Agrovet\AdviceController::class, 'show'])->name('advice.show');
         Route::post('/advice/{adviceRequest}/respond', [App\Http\Controllers\Agrovet\AdviceController::class, 'respond'])->name('advice.respond');
 
-        Route::get('/consultations', [App\Http\Controllers\Agrovet\ConsultationController::class, 'index'])->name('consultations.index');
-        Route::get('/consultations/{consultation}', [App\Http\Controllers\Agrovet\ConsultationController::class, 'show'])->name('consultations.show');
-        Route::patch('/consultations/{consultation}/status', [App\Http\Controllers\Agrovet\ConsultationController::class, 'updateStatus'])->name('consultations.status');
+        // Consultations - All routes properly organized (no duplicates)
+        Route::prefix('consultations')->name('consultations.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Agrovet\ConsultationController::class, 'index'])->name('index');
+            Route::get('/pending', [App\Http\Controllers\Agrovet\ConsultationController::class, 'pending'])->name('pending');
+            Route::get('/active', [App\Http\Controllers\Agrovet\ConsultationController::class, 'active'])->name('active');
+            Route::get('/completed', [App\Http\Controllers\Agrovet\ConsultationController::class, 'completed'])->name('completed');
+            Route::get('/{consultation}', [App\Http\Controllers\Agrovet\ConsultationController::class, 'show'])->name('show');
+            Route::patch('/{consultation}/status', [App\Http\Controllers\Agrovet\ConsultationController::class, 'updateStatus'])->name('status');
+            Route::post('/{consultation}/respond', [App\Http\Controllers\Agrovet\ConsultationController::class, 'respond'])->name('respond');
+        });
 
+        // Messages
         Route::get('/messages', [App\Http\Controllers\Agrovet\MessageController::class, 'index'])->name('messages.index');
         Route::get('/messages/{farmer}', [App\Http\Controllers\Agrovet\MessageController::class, 'show'])->name('messages.show');
         Route::post('/messages/{farmer}', [App\Http\Controllers\Agrovet\MessageController::class, 'send'])->name('messages.send');
 
+        // Analytics
         Route::get('/analytics', [App\Http\Controllers\Agrovet\AnalyticsController::class, 'index'])->name('analytics.index');
-        Route::get('/agrovet-products', [App\Http\Controllers\Farmer\ProductController::class, 'agrovetProducts'])->name('products.agrovet');
     });
 });

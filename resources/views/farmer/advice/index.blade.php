@@ -1,64 +1,60 @@
-{{-- resources/views/farmer/advice/index.blade.php --}}
-@extends('layouts.app')
+@extends('layouts.dashboard')
 
 @section('title', 'My Advice Requests - FarmConnect')
 
+@section('sidebar')
+    @include('farmer.sidebar')
+@endsection
+
 @section('content')
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>My Advice Requests</h1>
-        <a href="{{ route('farmer.advice.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> New Request
+<div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">My Advice Requests</h1>
+        <a href="{{ route('farmer.advice.create') }}" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            <i class="fas fa-plus mr-2"></i> Ask for Advice
         </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     @if($advice->count() > 0)
-        <div class="row">
+        <div class="divide-y">
             @foreach($advice as $request)
-                <div class="col-md-6 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">{{ $request->subject }}</h5>
-                            <span class="badge bg-{{ $request->status === 'resolved' ? 'success' : ($request->status === 'answered' ? 'info' : 'warning') }}">
-                                {{ ucfirst($request->status) }}
-                            </span>
-                        </div>
-                        <div class="card-body">
-                            <p class="card-text">{{ Str::limit($request->message, 150) }}</p>
+                <div class="py-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="font-semibold text-lg">{{ $request->subject }}</h3>
+                                <span class="px-2 py-1 text-xs rounded-full 
+                                    {{ $request->status === 'answered' ? 'bg-green-100 text-green-700' : 
+                                       ($request->status === 'assigned' ? 'bg-blue-100 text-blue-700' : 
+                                       ($request->status === 'resolved' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700')) }}">
+                                    {{ ucfirst($request->status) }}
+                                </span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-2">{{ Str::limit($request->message, 150) }}</p>
                             @if($request->agrovet)
-                                <div class="mb-2">
-                                    <small class="text-muted">Assigned to: {{ $request->agrovet->name }}</small>
-                                </div>
+                                <p class="text-xs text-gray-500">Assigned to: {{ $request->agrovet->name }}</p>
                             @endif
-                            <small class="text-muted">{{ $request->created_at->diffForHumans() }}</small>
+                            <p class="text-xs text-gray-400 mt-1">{{ $request->created_at->diffForHumans() }}</p>
                         </div>
-                        <div class="card-footer bg-transparent">
-                            <a href="{{ route('farmer.advice.show', $request) }}" class="btn btn-sm btn-primary">
-                                View Details
-                            </a>
-                        </div>
+                        <a href="{{ route('farmer.advice.show', $request) }}" 
+                           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm ml-4">
+                            View Details
+                        </a>
                     </div>
                 </div>
             @endforeach
         </div>
-
-        <div class="mt-4">
+        
+        <div class="mt-6">
             {{ $advice->links() }}
         </div>
     @else
-        <div class="text-center py-5">
-            <i class="fas fa-question-circle fa-4x text-muted mb-3"></i>
-            <h3>No Advice Requests Yet</h3>
-            <p class="text-muted">Have a farming question? Ask our agrovet experts for advice.</p>
-            <a href="{{ route('farmer.advice.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Ask for Advice
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">💡</div>
+            <h3 class="text-lg font-medium mb-2">No Advice Requests Yet</h3>
+            <p class="text-gray-500 mb-4">Have a farming question? Ask our agrovet experts for advice.</p>
+            <a href="{{ route('farmer.advice.create') }}" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                Ask for Advice
             </a>
         </div>
     @endif

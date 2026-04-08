@@ -32,68 +32,44 @@
             background: linear-gradient(135deg, rgba(22, 101, 52, 0.95), rgba(21, 128, 61, 0.95));
             backdrop-filter: blur(10px);
         }
+        .card-bg {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+        }
+        .footer-bg {
+            background: rgba(20, 83, 45, 0.95);
+            backdrop-filter: blur(10px);
+        }
     </style>
 </head>
 <body class="bg-farm min-h-screen flex flex-col">
 
-<!-- Only show navbar on non-auth pages and non-landing pages if needed -->
-@php
-    $hideNavbarRoutes = ['login', 'register', 'landing'];
-    $currentRoute = Route::currentRouteName();
-    $shouldHideNavbar = in_array($currentRoute, $hideNavbarRoutes);
-@endphp
-
-@auth
-    <!-- Show navbar for authenticated users -->
-    <nav class="navbar-bg text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="{{ route('landing') }}" class="font-bold text-xl flex items-center gap-2">🌱 FarmConnect</a>
-            <div class="flex items-center gap-4 text-sm">
+<nav class="navbar-bg text-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <a href="{{ route('landing') }}" class="font-bold text-xl flex items-center gap-2">🌱 FarmConnect</a>
+        <div class="flex items-center gap-4 text-sm">
+            <a href="{{ route('marketplace.index') }}" class="hover:text-green-200">Marketplace</a>
+            @auth
                 @php $user = auth()->user(); @endphp
                 @if($user->isAdmin())
-                    <a href="{{ route('admin.dashboard') }}" class="hover:text-green-200">Admin</a>
+                    <a href="{{ route('admin.dashboard') }}" class="hover:text-green-200">Admin Dashboard</a>
                 @elseif($user->isFarmer())
                     <a href="{{ route('farmer.dashboard') }}" class="hover:text-green-200">Dashboard</a>
-                    <div class="relative group">
-                        <button class="hover:text-green-200 flex items-center gap-1">📦 Products</button>
-                        <div class="absolute hidden group-hover:block bg-white text-gray-800 rounded-lg shadow-lg mt-2 w-48 z-50">
-                            <a href="{{ route('farmer.products.index') }}" class="block px-4 py-2 hover:bg-green-50">My Products</a>
-                            <a href="{{ route('farmer.products.create') }}" class="block px-4 py-2 hover:bg-green-50">Add Product</a>
-                            <a href="{{ route('farmer.products.marketplace', ['seller' => 'farmer']) }}" class="block px-4 py-2 hover:bg-green-50">Buy from Farmers</a>
-                        </div>
-                    </div>
-                    <a href="{{ route('farmer.advice.index') }}" class="hover:text-green-200">Advice</a>
-                    <a href="{{ route('farmer.consultations.index') }}" class="hover:text-green-200">Consultations</a>
-                    <a href="{{ route('cart.index') }}" class="hover:text-green-200">Cart</a>
-                    <a href="{{ route('profile.edit') }}" class="hover:text-green-200">Profile</a>
                 @elseif($user->isAgrovet())
                     <a href="{{ route('agrovet.dashboard') }}" class="hover:text-green-200">Dashboard</a>
-                    <a href="{{ route('agrovet.products.index') }}" class="hover:text-green-200">Products</a>
-                    <a href="{{ route('agrovet.orders.index') }}" class="hover:text-green-200">Orders</a>
-                    <a href="{{ route('agrovet.advice.index') }}" class="hover:text-green-200">Advice</a>
-                    <a href="{{ route('profile.edit') }}" class="hover:text-green-200">Profile</a>
                 @endif
                 <span class="text-green-300">{{ $user->name }}</span>
                 <form method="POST" action="{{ route('logout') }}" class="inline">
                     @csrf
                     <button class="bg-white text-green-700 px-3 py-1 rounded text-xs font-semibold">Logout</button>
                 </form>
-            </div>
-        </div>
-    </nav>
-@elseif(!$shouldHideNavbar)
-    <!-- Show navbar for non-authenticated users only on specific pages (not login/register/landing) -->
-    <nav class="navbar-bg text-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="{{ route('landing') }}" class="font-bold text-xl flex items-center gap-2">🌱 FarmConnect</a>
-            <div class="flex items-center gap-4 text-sm">
-                <a href="{{ route('marketplace.index') }}" class="hover:text-green-200">Marketplace</a>
+            @else
                 <a href="{{ route('login') }}" class="hover:text-green-200">Login</a>
                 <a href="{{ route('register') }}" class="bg-white text-green-700 px-3 py-1 rounded font-semibold">Register</a>
-            </div>
+            @endauth
         </div>
-    </nav>
-@endif
+    </div>
+</nav>
 
 <main class="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
     @if(session('success'))
@@ -108,7 +84,7 @@
     @yield('content')
 </main>
 
-<footer class="bg-green-800 text-green-200 text-center py-4 text-sm mt-auto">
+<footer class="footer-bg text-green-200 text-center py-4 text-sm mt-auto">
     © {{ date('Y') }} FarmConnect — Connecting Farmers & Agrovets across Kenya
 </footer>
 </body>

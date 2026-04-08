@@ -5,14 +5,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-// Remove SoftDeletes - comment this line
-// use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
     use HasFactory;
-    // Remove SoftDeletes trait - comment this line
-    // use SoftDeletes;
 
     protected $table = 'products';
     
@@ -26,10 +22,15 @@ class Product extends Model
         'quantity' => 'integer',
     ];
 
-    // Relationship with farmer/agrovet (seller)
-    public function farmer()
+    // Relationship with seller (could be farmer or agrovet)
+    public function seller()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function farmer()
+    {
+        return $this->belongsTo(User::class, 'farmer_id');
     }
 
     public function category()
@@ -42,12 +43,6 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function reviews()
-    {
-        return $this->hasMany(Review::class);
-    }
-
-    // Accessors
     public function getImageUrlAttribute()
     {
         return $this->image ? asset('storage/' . $this->image) : asset('images/default-product.jpg');
@@ -58,17 +53,6 @@ class Product extends Model
         return 'KSh ' . number_format($this->price, 2);
     }
 
-    public function getAverageRatingAttribute()
-    {
-        return $this->reviews()->avg('rating') ?? 0;
-    }
-
-    public function getReviewsCountAttribute()
-    {
-        return $this->reviews()->count();
-    }
-
-    // Helper methods
     public function isActive()
     {
         return $this->status === 'active';
@@ -77,11 +61,6 @@ class Product extends Model
     public function isAvailable()
     {
         return $this->status === 'active' && $this->quantity > 0;
-    }
-
-    public function getStatusTextAttribute()
-    {
-        return $this->status === 'active' ? 'Available' : ucfirst($this->status);
     }
 
     public function reduceStock($quantity)

@@ -1,9 +1,9 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Conversation - Agrovet')
+@section('title', 'Conversation - FarmConnect')
 
 @section('sidebar')
-    @include('agrovet.sidebar')
+    @include('farmer.sidebar')
 @endsection
 
 @section('content')
@@ -11,15 +11,15 @@
     <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow">
         <!-- Header -->
         <div class="p-4 border-b flex items-center gap-3">
-            <a href="{{ route('agrovet.messages.index') }}" class="text-gray-600 hover:text-gray-800">
+            <a href="{{ route('farmer.messages.index') }}" class="text-gray-600 hover:text-gray-800">
                 <i class="fas fa-arrow-left text-xl"></i>
             </a>
             <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                 <i class="fas fa-user text-green-600"></i>
             </div>
             <div>
-                <h2 class="font-semibold">{{ $farmer->name }}</h2>
-                <p class="text-xs text-gray-500">{{ $farmer->email }}</p>
+                <h2 class="font-semibold">{{ $otherUser->name }}</h2>
+                <p class="text-xs text-gray-500">{{ $otherUser->email }}</p>
             </div>
         </div>
 
@@ -28,7 +28,7 @@
             @foreach($messages as $message)
                 <div class="flex {{ $message->sender_id == auth()->id() ? 'justify-end' : 'justify-start' }}">
                     <div class="max-w-[70%] {{ $message->sender_id == auth()->id() ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-800' }} rounded-lg px-4 py-2">
-                        <p class="text-sm">{{ $message->body }}</p>
+                        <p class="text-sm">{{ $message->body }}</p>  <!-- Changed from content to body -->
                         <p class="text-xs {{ $message->sender_id == auth()->id() ? 'text-green-200' : 'text-gray-500' }} mt-1">
                             {{ $message->created_at->format('g:i A') }}
                         </p>
@@ -40,7 +40,7 @@
 
         <!-- Reply Form -->
         <div class="p-4 border-t">
-            <form method="POST" action="{{ route('agrovet.messages.send', $farmer->id) }}" id="messageForm">
+            <form method="POST" action="{{ route('farmer.messages.send', $otherUser->id) }}" id="messageForm">
                 @csrf
                 <div class="flex gap-2">
                     <input type="text" name="message" 

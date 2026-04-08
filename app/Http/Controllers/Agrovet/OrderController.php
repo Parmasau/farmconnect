@@ -22,6 +22,7 @@ class OrderController extends Controller
             'pending' => Order::where('seller_id', Auth::id())->where('status', 'pending')->count(),
             'processing' => Order::where('seller_id', Auth::id())->where('status', 'processing')->count(),
             'completed' => Order::where('seller_id', Auth::id())->where('status', 'completed')->count(),
+            'total_revenue' => Order::where('seller_id', Auth::id())->where('status', 'completed')->sum('total_amount'),
         ];
         
         return view('agrovet.orders.index', compact('orders', 'stats'));
@@ -48,13 +49,14 @@ class OrderController extends Controller
             'status' => 'required|in:pending,processing,shipped,delivered,completed,cancelled',
         ]);
 
+        $oldStatus = $order->status;
         $order->update(['status' => $request->status]);
 
         // Create notification for buyer
         Notification::create([
             'user_id' => $order->buyer_id,
             'title' => 'Order Status Update',
-            'message' => 'Your order #' . $order->order_number . ' is now ' . ucfirst($request->status),
+            'message' => 'Your order #' . $order->order_number . ' has been updated from ' . ucfirst($oldStatus) . ' to ' . ucfirst($request->status),
             'type' => 'order',
             'data' => ['order_id' => $order->id],
         ]);
