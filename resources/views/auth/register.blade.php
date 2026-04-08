@@ -15,7 +15,7 @@
         
         .bg-farm {
             background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
-                url('https://images.pexels.com/photos/80709/pexels-photo-80709.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop')
+                url('https://images.pexels.com/photos/80709/pexels-photo-80709.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -68,6 +68,16 @@
         .btn-register:hover {
             background: linear-gradient(135deg, #15803d 0%, #166534 100%);
             transform: scale(1.02);
+        }
+        
+        /* Hide admin role by default - only show for first user or via special access */
+        .admin-role-hidden {
+            display: none;
+        }
+        
+        /* Show admin role when special key is pressed or checkbox is checked */
+        .show-admin:checked ~ .admin-role-hidden {
+            display: block;
         }
     </style>
 </head>
@@ -130,6 +140,9 @@
                         <select name="role" class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" required>
                             <option value="farmer" {{ old('role') == 'farmer' ? 'selected' : '' }}>🌾 Farmer</option>
                             <option value="agrovet" {{ old('role') == 'agrovet' ? 'selected' : '' }}>🔬 Agrovet</option>
+                            @if(app()->environment('local') || (isset($allowAdmin) && $allowAdmin))
+                                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>👑 Admin</option>
+                            @endif
                         </select>
                     </div>
                 </div>
