@@ -29,22 +29,56 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        // Base validation rules
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:farmer,agrovet,admin'], // Add 'admin' to allowed roles
-            'phone' => ['nullable', 'string', 'max:20'],
-        ]);
-
-        $user = User::create([
+            'role' => ['required', 'in:farmer,agrovet,admin'],
+        ];
+        
+        // Role-specific validation
+        if ($request->role === 'farmer') {
+            $rules['phone'] = ['nullable', 'string', 'max:20'];
+            $rules['mpesa_number'] = ['required', 'string', 'max:20'];
+        }
+        
+        if ($request->role === 'agrovet') {
+            $rules['business_name'] = ['required', 'string', 'max:255'];
+            $rules['till_number'] = ['required', 'string', 'max:20'];
+        }
+        
+        if ($request->role === 'admin') {
+            $rules['phone'] = ['nullable', 'string', 'max:20'];
+        }
+        
+        $request->validate($rules);
+        
+        // Prepare user data
+        $userData = [
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            'phone' => $request->phone,
             'is_active' => true,
-        ]);
+        ];
+        
+        // Add role-specific data
+        if ($request->role === 'farmer') {
+            $userData['phone'] = $request->phone;
+            $userData['mpesa_number'] = $request->mpesa_number;
+        }
+        
+        if ($request->role === 'agrovet') {
+            $userData['business_name'] = $request->business_name;
+            $userData['till_number'] = $request->till_number;
+        }
+        
+        if ($request->role === 'admin') {
+            $userData['phone'] = $request->phone;
+        }
+        
+        $user = User::create($userData);
 
         event(new Registered($user));
 

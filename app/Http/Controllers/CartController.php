@@ -1,102 +1,162 @@
 <?php
+// app/Http/Controllers/CartController.php
 
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
     public function index()
     {
-        $items = Cart::with('product.owner')->where('user_id', Auth::id())->get();
-        $total = $items->sum(fn($i) => $i->quantity * $i->product->price);
-        return view('cart.index', compact('items', 'total'));
+        $cartItems = Cart::where('user_id', Auth::id())
+                        ->with('product')
+                        ->get();
+        
+        $total = $cartItems->sum(function($item) {
+            return $item->product->price * $item->quantity;
+        });
+        
+        return view('cart.index', compact('cartItems', 'total'));
     }
 
     public function add(Request $request, Product $product)
     {
-        $request->validate(['quantity' => 'required|integer|min:1']);
+        $request->validate([
+            'quantity' => 'required|integer|min:1|max:' . $product->quantity,
+        ]);
 
-        $cart = Cart::firstOrNew(['user_id' => Auth::id(), 'product_id' => $product->id]);
-        $cart->quantity = ($cart->quantity ?? 0) + $request->quantity;
-        $cart->save();
+        $cart = Cart::where('user_id', Auth::id())
+                    ->where('product_id', $product->id)
+                    ->first();
 
-        return back()->with('success', 'Added to cart.');
+        if ($cart) {
+            $cart->increment('quantity', $request->quantity);
+        } else {
+            Cart::create([
+                'user_id' => Auth::id(),
+                'product_id' => $product->id,
+                'quantity' => $request->quantity,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Product added to cart!');
     }
 
     public function update(Request $request, Cart $cart)
     {
-        $this->authorize('update', $cart);
-        $request->validate(['quantity' => 'required|integer|min:1']);
+        if ($cart->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'quantity' => 'required|integer|min:1|max:' . $cart->product->quantity,
+        ]);
+
         $cart->update(['quantity' => $request->quantity]);
-        return back()->with('success', 'Cart updated.');
+
+        return redirect()->route('cart.index')->with('success', 'Cart updated!');
     }
 
     public function remove(Cart $cart)
     {
-        $this->authorize('delete', $cart);
+        if ($cart->user_id !== Auth::id()) {
+            abort(403);
+        }
+
         $cart->delete();
-        return back()->with('success', 'Item removed.');
+
+        return redirect()->route('cart.index')->with('success', 'Item removed from cart!');
     }
 
     public function clear()
     {
         Cart::where('user_id', Auth::id())->delete();
-        return back()->with('success', 'Cart cleared.');
+
+        return redirect()->route('cart.index')->with('success', 'Cart cleared!');
     }
 
     public function checkout()
     {
-        $items = Cart::with('product.owner')->where('user_id', Auth::id())->get();
-        if ($items->isEmpty()) return redirect()->route('cart.index')->with('error', 'Cart is empty.');
-        $total = $items->sum(fn($i) => $i->quantity * $i->product->price);
-        return view('cart.checkout', compact('items', 'total'));
+        $cartItems = Cart::where('user_id', Auth::id())
+                        ->with('product')
+                        ->get();
+
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', 'Your cart is empty!');
+        }
+
+        $total = $cartItems->sum(function($item) {
+            return $item->product->price * $item->quantity;
+        });
+
+        return view('cart.checkout', compact('cartItems', 'total'));
     }
 
     public function processCheckout(Request $request)
     {
-        $request->validate(['delivery_address' => 'required|string']);
+        $cartItems = Cart::where('user_id', Auth::id())
+                        ->with('product')
+                        ->get();
 
-        $items = Cart::with('product')->where('user_id', Auth::id())->get();
-        if ($items->isEmpty()) return redirect()->route('cart.index');
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', 'Your cart is empty!');
+        }
 
-        DB::transaction(function () use ($items, $request) {
-            // Group by seller
-            $bySeller = $items->groupBy(fn($i) => $i->product->farmer_id);
+        $request->validate([
+            'shipping_address' => 'required|string',
+            'payment_method' => 'required|string',
+        ]);
 
-            foreach ($bySeller as $sellerId => $sellerItems) {
-                $total = $sellerItems->sum(fn($i) => $i->quantity * $i->product->price);
-
-                $order = Order::create([
-                    'buyer_id'         => Auth::id(),
-                    'seller_id'        => $sellerId,
-                    'total_amount'     => $total,
-                    'payment_status'   => 'paid',
-                    'delivery_address' => $request->delivery_address,
-                    'notes'            => $request->notes,
-                ]);
-
-                foreach ($sellerItems as $item) {
-                    OrderItem::create([
-                        'order_id'   => $order->id,
-                        'product_id' => $item->product_id,
-                        'quantity'   => $item->quantity,
-                        'unit_price' => $item->product->price,
-                        'subtotal'   => $item->quantity * $item->product->price,
-                    ]);
-                    $item->product->decrement('quantity', $item->quantity);
-                }
-            }
-
-            Cart::where('user_id', Auth::id())->delete();
+        // Group items by seller
+        $itemsBySeller = $cartItems->groupBy(function($item) {
+            return $item->product->farmer_id ?? $item->product->user_id;
         });
 
-        return redirect()->route('farmer.orders.index')->with('success', 'Order placed successfully!');
+        foreach ($itemsBySeller as $sellerId => $items) {
+            $subtotal = $items->sum(function($item) {
+                return $item->product->price * $item->quantity;
+            });
+
+            $order = Order::create([
+                'buyer_id' => Auth::id(),
+                'seller_id' => $sellerId,
+                'order_number' => 'ORD-' . strtoupper(uniqid()),
+                'subtotal' => $subtotal,
+                'tax' => 0,
+                'shipping_cost' => 0,
+                'total_amount' => $subtotal,
+                'status' => 'pending',
+                'payment_status' => 'unpaid',
+                'payment_method' => $request->payment_method,
+                'shipping_address' => $request->shipping_address,
+                'order_type' => 'farmer',
+            ]);
+
+            foreach ($items as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product->name,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->product->price,
+                    'total' => $item->product->price * $item->quantity,
+                ]);
+
+                // Reduce product stock
+                $item->product->reduceStock($item->quantity);
+            }
+        }
+
+        // Clear cart
+        Cart::where('user_id', Auth::id())->delete();
+
+        return redirect()->route('farmer.my-orders')
+                         ->with('success', 'Order placed successfully!');
     }
 }

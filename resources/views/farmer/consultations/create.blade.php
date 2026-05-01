@@ -1,6 +1,7 @@
+{{-- resources/views/farmer/consultations/create.blade.php --}}
 @extends('layouts.dashboard')
 
-@section('title', 'Request Consultation - FarmConnect')
+@section('title', 'Request Consultation - FarmNest')
 
 @section('sidebar')
     @include('farmer.sidebar')
@@ -32,6 +33,7 @@
                 @error('agrovet_id')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
+                <p class="text-xs text-gray-500 mt-1">Your consultation request will be sent only to this agrovet.</p>
             </div>
 
             <div class="mb-4">
@@ -46,7 +48,7 @@
 
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-                <textarea name="description" rows="6" 
+                <textarea name="description" rows="5" 
                           class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:outline-none" 
                           placeholder="Describe your issue in detail..." 
                           required>{{ old('description') }}</textarea>
@@ -75,6 +77,13 @@
                 @error('scheduled_at')
                     <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                 @enderror
+            </div>
+
+            <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                <p class="text-sm text-blue-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Your consultation request will be sent directly to the selected agrovet. They will respond as soon as possible.
+                </p>
             </div>
 
             <div class="flex gap-3">

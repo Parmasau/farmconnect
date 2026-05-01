@@ -24,15 +24,15 @@ class ProductController extends Controller
         return view('farmer.products.index', compact('products'));
     }
 
-    // Products the farmer has purchased (bought from others)
-    public function purchased()
+    // My Orders - Products the farmer has purchased
+    public function myOrders()
     {
-        $purchasedProducts = Order::where('buyer_id', Auth::id())
-                                 ->with('items.product')
-                                 ->orderBy('created_at', 'desc')
-                                 ->paginate(15);
+        $orders = Order::where('buyer_id', Auth::id())
+                      ->with(['items.product', 'seller'])
+                      ->orderBy('created_at', 'desc')
+                      ->paginate(15);
         
-        return view('farmer.products.purchased', compact('purchasedProducts'));
+        return view('farmer.my-orders', compact('orders'));
     }
 
     // Show agrovet products for farmers to buy
@@ -100,7 +100,6 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
         ]);
 
-        // Generate unique slug
         $slug = Str::slug($request->name);
         $originalSlug = $slug;
         $counter = 1;
@@ -112,7 +111,7 @@ class ProductController extends Controller
 
         $data = $request->all();
         $data['farmer_id'] = Auth::id();
-        $data['user_id'] = Auth::id(); // Add this for compatibility
+        $data['user_id'] = Auth::id();
         $data['slug'] = $slug;
         $data['status'] = 'active';
         $data['product_type'] = 'sell';
@@ -124,7 +123,7 @@ class ProductController extends Controller
         Product::create($data);
 
         return redirect()->route('farmer.products.index')
-                         ->with('success', 'Product added successfully! Other farmers can now see your product.');
+                         ->with('success', 'Product added successfully!');
     }
 
     public function show(Product $product)

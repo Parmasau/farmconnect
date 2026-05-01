@@ -1,3 +1,4 @@
+{{-- resources/views/farmer/products/view.blade.php --}}
 @extends('layouts.dashboard')
 
 @section('title', $product->name . ' - Product Details')
@@ -54,11 +55,35 @@
                     </div>
                 </div>
                 
-                <div class="flex gap-3 mt-6">
-                    <button onclick="showContactModal()" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold">
-                        <i class="fas fa-phone-alt"></i> Contact Seller
-                    </button>
+                <!-- Buy Now Form -->
+                @if($product->quantity > 0)
+                <div class="border-t pt-4 mt-4">
+                    <h3 class="font-semibold mb-3">Buy Now</h3>
+                    <form action="{{ route('order.create', $product) }}" method="POST" id="buyForm">
+                        @csrf
+                        <div class="flex gap-3 mb-3">
+                            <div class="flex-1">
+                                <label class="block text-sm text-gray-600 mb-1">Quantity</label>
+                                <input type="number" name="quantity" id="quantity" value="1" min="1" max="{{ $product->quantity }}" 
+                                       class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-sm text-gray-600 mb-1">Total Price</label>
+                                <input type="text" id="totalPrice" value="KSh {{ number_format($product->price, 2) }}" 
+                                       class="w-full border rounded-lg px-3 py-2 bg-gray-50" readonly>
+                            </div>
+                        </div>
+                        <button type="button" onclick="showPaymentModal()" 
+                                class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold transition">
+                            <i class="fas fa-shopping-cart"></i> Buy Now
+                        </button>
+                    </form>
                 </div>
+                @else
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mt-4">
+                    <i class="fas fa-exclamation-circle"></i> Out of Stock
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -83,32 +108,319 @@
     @endif
 </div>
 
-<!-- Contact Modal -->
-<div id="contactModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+<!-- Payment Modal -->
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
         <div class="p-6">
-            <h3 class="text-lg font-semibold mb-4">Contact Seller</h3>
-            <p class="text-gray-600 mb-4">You will be redirected to start a conversation with {{ $product->farmer->name ?? 'the seller' }} about this product.</p>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Complete Payment</h3>
+                <button onclick="hidePaymentModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="bg-green-50 rounded-lg p-4 mb-4">
+                <div class="flex justify-between mb-2">
+                    <span>Product:</span>
+                    <span class="font-semibold">{{ $product->name }}</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span>Quantity:</span>
+                    <span class="font-semibold" id="modalQuantity">1</span>
+                </div>
+                <div class="flex justify-between pt-2 border-t">
+                    <span class="font-bold">Total:</span>
+                    <span class="font-bold text-green-700 text-lg" id="modalTotal">KSh {{ number_format($product->price, 2) }}</span>
+                </div>
+            </div>
+            
+            <!-- M-Pesa Number Section -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-1">M-Pesa Number *</label>
+                <div class="flex gap-2">
+                    <input type="tel" id="mpesaNumber" placeholder="0712345678" 
+                           class="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500"
+                           value="{{ auth()->user()->mpesa_number ?? '' }}">
+                    <button type="button" onclick="verifyMpesaNumber()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Verify
+                    </button>
+                </div>
+                <div id="verificationMessage" class="text-xs mt-1 hidden"></div>
+                <p class="text-xs text-gray-500 mt-1">Enter your M-Pesa registered phone number</p>
+            </div>
+            
             <div class="flex gap-3">
-                <button onclick="hideContactModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">Cancel</button>
-                <a href="{{ route('farmer.messages.create', ['farmer_id' => $product->farmer_id, 'product_id' => $product->id]) }}" 
-                   class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg text-center hover:bg-green-700">
-                    Continue
-                </a>
+                <button onclick="hidePaymentModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">Cancel</button>
+                <button onclick="processMpesaPayment()" id="payNowBtn" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700" disabled>
+                    Pay Now
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div class="p-6">
+            <div class="text-center mb-4">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-mobile-alt text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold">Confirm M-Pesa Payment</h3>
+                <p class="text-gray-600 text-sm mt-1">We'll send a payment request to your phone</p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <div class="flex justify-between mb-2">
+                    <span>Amount:</span>
+                    <span class="font-bold text-green-700" id="confirmAmount">KSh 0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Phone:</span>
+                    <span class="font-semibold" id="confirmPhone"></span>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 rounded-lg p-3 mb-4">
+                <p class="text-sm text-yellow-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    You will receive a prompt on your phone. Enter your M-Pesa PIN to complete the payment.
+                </p>
+            </div>
+            
+            <div class="flex gap-3">
+                <button onclick="hideConfirmationModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">Cancel</button>
+                <button onclick="sendPaymentRequest()" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                    Confirm & Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Processing Modal -->
+<div id="processingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+        <p class="text-gray-700 font-semibold">Processing Payment</p>
+        <p class="text-sm text-gray-500 mt-2">Please check your phone and enter your M-Pesa PIN</p>
+        <p class="text-xs text-gray-400 mt-4" id="processingTimer">Waiting for confirmation...</p>
+    </div>
+</div>
+
 <script>
-    function showContactModal() {
-        document.getElementById('contactModal').classList.remove('hidden');
-        document.getElementById('contactModal').classList.add('flex');
+    let verifiedMpesaNumber = null;
+    let currentOrderId = null;
+    let paymentCheckInterval = null;
+    
+    // Update total price when quantity changes
+    const quantityInput = document.getElementById('quantity');
+    const totalPriceInput = document.getElementById('totalPrice');
+    const productPrice = {{ $product->price }};
+    
+    quantityInput.addEventListener('input', function() {
+        const quantity = parseInt(this.value) || 0;
+        const total = quantity * productPrice;
+        totalPriceInput.value = 'KSh ' + total.toLocaleString();
+    });
+    
+    function showPaymentModal() {
+        const quantity = document.getElementById('quantity').value;
+        const total = quantity * productPrice;
+        
+        document.getElementById('modalQuantity').textContent = quantity;
+        document.getElementById('modalTotal').textContent = 'KSh ' + total.toLocaleString();
+        document.getElementById('paymentModal').classList.remove('hidden');
+        document.getElementById('paymentModal').classList.add('flex');
+        
+        // Reset verification
+        verifiedMpesaNumber = null;
+        document.getElementById('payNowBtn').disabled = true;
+        document.getElementById('mpesaNumber').value = '{{ auth()->user()->mpesa_number ?? '' }}';
+        document.getElementById('verificationMessage').classList.add('hidden');
     }
     
-    function hideContactModal() {
-        document.getElementById('contactModal').classList.add('hidden');
-        document.getElementById('contactModal').classList.remove('flex');
+    function hidePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('paymentModal').classList.remove('flex');
+    }
+    
+    function hideConfirmationModal() {
+        document.getElementById('confirmationModal').classList.add('hidden');
+        document.getElementById('confirmationModal').classList.remove('flex');
+        showPaymentModal();
+    }
+    
+    function verifyMpesaNumber() {
+        const mpesaNumber = document.getElementById('mpesaNumber').value;
+        const verificationMsg = document.getElementById('verificationMessage');
+        
+        if (!mpesaNumber) {
+            verificationMsg.textContent = 'Please enter your M-Pesa number';
+            verificationMsg.className = 'text-xs mt-1 text-red-600';
+            verificationMsg.classList.remove('hidden');
+            return;
+        }
+        
+        // Format and validate M-Pesa number
+        const cleanNumber = mpesaNumber.replace(/[^0-9]/g, '');
+        let isValid = false;
+        let formattedNumber = cleanNumber;
+        
+        // Check if number is valid (Safaricom numbers: 07xxxxxxxx or 2547xxxxxxxx)
+        if (cleanNumber.length === 10 && cleanNumber.startsWith('07')) {
+            isValid = true;
+            formattedNumber = '254' + cleanNumber.substring(1);
+        } else if (cleanNumber.length === 12 && cleanNumber.startsWith('2547')) {
+            isValid = true;
+            formattedNumber = cleanNumber;
+        } else if (cleanNumber.length === 9 && cleanNumber.startsWith('7')) {
+            isValid = true;
+            formattedNumber = '254' + cleanNumber;
+        }
+        
+        if (isValid) {
+            verifiedMpesaNumber = formattedNumber;
+            verificationMsg.textContent = '✓ M-Pesa number verified';
+            verificationMsg.className = 'text-xs mt-1 text-green-600';
+            verificationMsg.classList.remove('hidden');
+            document.getElementById('payNowBtn').disabled = false;
+        } else {
+            verificationMsg.textContent = 'Invalid M-Pesa number. Please enter a valid Safaricom number (e.g., 0712345678)';
+            verificationMsg.className = 'text-xs mt-1 text-red-600';
+            verificationMsg.classList.remove('hidden');
+            document.getElementById('payNowBtn').disabled = true;
+        }
+    }
+    
+    function processMpesaPayment() {
+        const quantity = document.getElementById('quantity').value;
+        const total = quantity * productPrice;
+        const phone = document.getElementById('mpesaNumber').value;
+        
+        document.getElementById('confirmAmount').textContent = 'KSh ' + total.toLocaleString();
+        document.getElementById('confirmPhone').textContent = phone;
+        
+        hidePaymentModal();
+        document.getElementById('confirmationModal').classList.remove('hidden');
+        document.getElementById('confirmationModal').classList.add('flex');
+    }
+    
+    function sendPaymentRequest() {
+        hideConfirmationModal();
+        
+        const quantity = document.getElementById('quantity').value;
+        const total = quantity * productPrice;
+        const phone = document.getElementById('mpesaNumber').value;
+        
+        // Show processing modal
+        document.getElementById('processingModal').classList.remove('hidden');
+        document.getElementById('processingModal').classList.add('flex');
+        
+        // Start timer display
+        let seconds = 0;
+        const timer = setInterval(() => {
+            seconds++;
+            document.getElementById('processingTimer').textContent = `Waiting for confirmation... (${seconds}s)`;
+        }, 1000);
+        
+        // Create order via AJAX
+        const form = document.getElementById('buyForm');
+        const formData = new FormData(form);
+        formData.append('payment_method', 'mpesa');
+        formData.append('mpesa_number', phone);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentOrderId = data.order_id;
+                
+                // Initiate M-Pesa STK Push
+                return fetch('/mpesa/initiate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        order_id: currentOrderId,
+                        amount: total,
+                        phone_number: verifiedMpesaNumber || phone
+                    })
+                });
+            } else {
+                throw new Error(data.message || 'Order creation failed');
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Poll for payment status
+                let attempts = 0;
+                paymentCheckInterval = setInterval(() => {
+                    attempts++;
+                    fetch('/mpesa/status', {
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(status => {
+                        if (status.completed) {
+                            clearInterval(paymentCheckInterval);
+                            clearInterval(timer);
+                            document.getElementById('processingModal').classList.add('hidden');
+                            alert('Payment successful! Order placed successfully.');
+                            window.location.href = '{{ route("farmer.my-orders") }}';
+                        } else if (attempts > 30) {
+                            clearInterval(paymentCheckInterval);
+                            clearInterval(timer);
+                            document.getElementById('processingModal').classList.add('hidden');
+                            alert('Payment timeout. Please check your order status later.');
+                            window.location.href = '{{ route("farmer.my-orders") }}';
+                        }
+                    });
+                }, 2000);
+            } else {
+                throw new Error(data.message);
+            }
+        })
+        .catch(error => {
+            clearInterval(timer);
+            document.getElementById('processingModal').classList.add('hidden');
+            alert('Payment failed: ' + error.message);
+        });
+    }
+    
+    // For testing purposes - simulate successful M-Pesa callback
+    function simulateMpesaCallback() {
+        if (currentOrderId) {
+            fetch('/mpesa/simulate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    order_id: currentOrderId,
+                    result_code: 0
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Payment simulated successfully');
+                }
+            });
+        }
     }
 </script>
 @endsection

@@ -12,20 +12,36 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    /**
+     * Display a listing of agrovet products.
+     */
     public function index()
     {
         $products = Product::where('user_id', Auth::id())
                           ->orderBy('created_at', 'desc')
                           ->paginate(15);
         
-        return view('agrovet.products.index', compact('products'));
+        $stats = [
+            'total' => $products->total(),
+            'active' => Product::where('user_id', Auth::id())->where('status', 'active')->count(),
+            'out_of_stock' => Product::where('user_id', Auth::id())->where('quantity', 0)->count(),
+            'low_stock' => Product::where('user_id', Auth::id())->where('quantity', '<', 10)->where('quantity', '>', 0)->count(),
+        ];
+        
+        return view('agrovet.products.index', compact('products', 'stats'));
     }
 
+    /**
+     * Show the form for creating a new product.
+     */
     public function create()
     {
         return view('agrovet.products.create');
     }
 
+    /**
+     * Store a newly created product in storage.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -43,7 +59,6 @@ class ProductController extends Controller
         $originalSlug = $slug;
         $counter = 1;
         
-        // Check if slug exists and make it unique
         while (Product::where('slug', $slug)->exists()) {
             $slug = $originalSlug . '-' . $counter;
             $counter++;
@@ -62,9 +77,12 @@ class ProductController extends Controller
         Product::create($data);
 
         return redirect()->route('agrovet.products.index')
-                         ->with('success', 'Product added successfully! Farmers can now see and purchase this product.');
+                         ->with('success', 'Product added successfully!');
     }
 
+    /**
+     * Display the specified product.
+     */
     public function show(Product $product)
     {
         if ($product->user_id !== Auth::id()) {
@@ -74,6 +92,9 @@ class ProductController extends Controller
         return view('agrovet.products.show', compact('product'));
     }
 
+    /**
+     * Show the form for editing the specified product.
+     */
     public function edit(Product $product)
     {
         if ($product->user_id !== Auth::id()) {
@@ -83,6 +104,9 @@ class ProductController extends Controller
         return view('agrovet.products.edit', compact('product'));
     }
 
+    /**
+     * Update the specified product in storage.
+     */
     public function update(Request $request, Product $product)
     {
         if ($product->user_id !== Auth::id()) {
@@ -127,6 +151,9 @@ class ProductController extends Controller
                          ->with('success', 'Product updated successfully!');
     }
 
+    /**
+     * Remove the specified product from storage.
+     */
     public function destroy(Product $product)
     {
         if ($product->user_id !== Auth::id()) {
@@ -143,6 +170,9 @@ class ProductController extends Controller
                          ->with('success', 'Product deleted successfully!');
     }
 
+    /**
+     * Update product stock.
+     */
     public function updateStock(Request $request, Product $product)
     {
         if ($product->user_id !== Auth::id()) {

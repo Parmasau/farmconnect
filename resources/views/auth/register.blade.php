@@ -1,27 +1,20 @@
+{{-- resources/views/auth/register.blade.php --}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - FarmConnect</title>
+    <title>Register - FarmNest</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap');
-        
-        * {
-            font-family: 'Poppins', sans-serif;
-        }
-        
         .bg-farm {
-            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
-                url('https://images.pexels.com/photos/80709/pexels-photo-80709.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop');
+            background-image: url('https://images.pexels.com/photos/80709/pexels-photo-80709.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             position: relative;
         }
-        
         .bg-farm::before {
             content: '';
             position: absolute;
@@ -29,55 +22,37 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 0;
         }
-        
         .bg-farm > * {
             position: relative;
             z-index: 1;
         }
-        
         .register-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transition: transform 0.3s ease;
         }
-        
-        .register-card:hover {
-            transform: translateY(-5px);
-        }
-        
         .input-field {
             transition: all 0.3s ease;
             border: 2px solid #e5e7eb;
         }
-        
         .input-field:focus {
             border-color: #16a34a;
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
         }
-        
         .btn-register {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
             transition: all 0.3s ease;
         }
-        
         .btn-register:hover {
             background: linear-gradient(135deg, #15803d 0%, #166534 100%);
             transform: scale(1.02);
         }
-        
-        /* Hide admin role by default - only show for first user or via special access */
-        .admin-role-hidden {
-            display: none;
-        }
-        
-        /* Show admin role when special key is pressed or checkbox is checked */
-        .show-admin:checked ~ .admin-role-hidden {
-            display: block;
+        .role-specific-field {
+            transition: all 0.3s ease;
         }
     </style>
 </head>
@@ -85,9 +60,9 @@
     <div class="max-w-md w-full mx-4">
         <div class="register-card p-8">
             <div class="text-center mb-6">
-                <div class="text-6xl mb-3 animate-pulse">🌱</div>
-                <h1 class="text-3xl font-bold text-green-700" style="font-family: 'Playfair Display', serif;">Create Account</h1>
-                <p class="text-gray-500 mt-2">Join FarmConnect today</p>
+                <div class="text-6xl mb-3">🌱</div>
+                <h1 class="text-3xl font-bold text-green-700">Create Account</h1>
+                <p class="text-gray-500 mt-2">Join FarmNest today</p>
             </div>
 
             @if($errors->any())
@@ -107,8 +82,7 @@
                         <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
                         <input type="text" name="name" value="{{ old('name') }}" 
                             class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
-                            placeholder="Enter your full name"
-                            required>
+                            placeholder="Enter your full name" required>
                     </div>
                 </div>
 
@@ -118,32 +92,82 @@
                         <i class="fas fa-envelope absolute left-3 top-3 text-gray-400"></i>
                         <input type="email" name="email" value="{{ old('email') }}" 
                             class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
-                            placeholder="Enter your email"
-                            required>
+                            placeholder="Enter your email" required>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="block text-gray-700 text-sm font-medium mb-1">Phone Number</label>
-                    <div class="relative">
-                        <i class="fas fa-phone absolute left-3 top-3 text-gray-400"></i>
-                        <input type="tel" name="phone" value="{{ old('phone') }}" 
-                            class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
-                            placeholder="Enter your phone number">
-                    </div>
-                </div>
-
+                <!-- Role Selection -->
                 <div class="mb-3">
                     <label class="block text-gray-700 text-sm font-medium mb-1">Role *</label>
                     <div class="relative">
                         <i class="fas fa-users absolute left-3 top-3 text-gray-400"></i>
-                        <select name="role" class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" required>
+                        <select name="role" id="role" class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" required>
                             <option value="farmer" {{ old('role') == 'farmer' ? 'selected' : '' }}>🌾 Farmer</option>
                             <option value="agrovet" {{ old('role') == 'agrovet' ? 'selected' : '' }}>🔬 Agrovet</option>
-                            @if(app()->environment('local') || (isset($allowAdmin) && $allowAdmin))
-                                <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>👑 Admin</option>
-                            @endif
+                            <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>👑 Admin</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Farmer Fields -->
+                <div id="farmerFields" class="role-specific-field" style="display: {{ old('role') == 'farmer' || !old('role') ? 'block' : 'none' }};">
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-medium mb-1">Phone Number</label>
+                        <div class="relative">
+                            <i class="fas fa-phone absolute left-3 top-3 text-gray-400"></i>
+                            <input type="tel" name="phone" value="{{ old('phone') }}" 
+                                class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
+                                placeholder="0706709332">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-medium mb-1">M-Pesa Number *</label>
+                        <div class="relative">
+                            <i class="fab fa-cc-mpesa absolute left-3 top-3 text-gray-400"></i>
+                            <input type="tel" name="mpesa_number" value="{{ old('mpesa_number') }}" 
+                                class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
+                                placeholder="0712345678" required>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">This will be used for payments</p>
+                    </div>
+                </div>
+
+                <!-- Agrovet Fields -->
+                <div id="agrovetFields" class="role-specific-field" style="display: {{ old('role') == 'agrovet' ? 'block' : 'none' }};">
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-medium mb-1">Business Name *</label>
+                        <div class="relative">
+                            <i class="fas fa-building absolute left-3 top-3 text-gray-400"></i>
+                            <input type="text" name="business_name" value="{{ old('business_name') }}" 
+                                class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
+                                placeholder="Your business name" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-medium mb-1">Till/Paybill Number *</label>
+                        <div class="relative">
+                            <i class="fas fa-store absolute left-3 top-3 text-purple-600"></i>
+                            <input type="text" name="till_number" value="{{ old('till_number') }}" 
+                                class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
+                                placeholder="e.g., 123456" required>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Your business Till/Paybill number for receiving payments</p>
+                        @error('till_number') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+
+                <!-- Admin Fields (Same as Farmer for simplicity) -->
+                <div id="adminFields" class="role-specific-field" style="display: {{ old('role') == 'admin' ? 'block' : 'none' }};">
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-medium mb-1">Phone Number</label>
+                        <div class="relative">
+                            <i class="fas fa-phone absolute left-3 top-3 text-gray-400"></i>
+                            <input type="tel" name="phone" value="{{ old('phone') }}" 
+                                class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
+                                placeholder="0712345678">
+                        </div>
                     </div>
                 </div>
 
@@ -153,8 +177,7 @@
                         <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
                         <input type="password" name="password" 
                             class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
-                            placeholder="Create a password"
-                            required>
+                            placeholder="Create a password" required>
                     </div>
                 </div>
 
@@ -164,8 +187,7 @@
                         <i class="fas fa-check-circle absolute left-3 top-3 text-gray-400"></i>
                         <input type="password" name="password_confirmation" 
                             class="input-field w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none" 
-                            placeholder="Confirm your password"
-                            required>
+                            placeholder="Confirm your password" required>
                     </div>
                 </div>
 
@@ -188,5 +210,37 @@
             </p>
         </div>
     </div>
+
+    <script>
+        // Toggle fields based on selected role
+        const roleSelect = document.getElementById('role');
+        const farmerFields = document.getElementById('farmerFields');
+        const agrovetFields = document.getElementById('agrovetFields');
+        const adminFields = document.getElementById('adminFields');
+
+        function toggleRoleFields() {
+            const selectedRole = roleSelect.value;
+            
+            // Hide all role-specific fields first
+            farmerFields.style.display = 'none';
+            agrovetFields.style.display = 'none';
+            adminFields.style.display = 'none';
+            
+            // Show fields based on selected role
+            if (selectedRole === 'farmer') {
+                farmerFields.style.display = 'block';
+            } else if (selectedRole === 'agrovet') {
+                agrovetFields.style.display = 'block';
+            } else if (selectedRole === 'admin') {
+                adminFields.style.display = 'block';
+            }
+        }
+
+        // Add event listener
+        roleSelect.addEventListener('change', toggleRoleFields);
+        
+        // Initialize on page load
+        toggleRoleFields();
+    </script>
 </body>
 </html>

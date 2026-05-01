@@ -6,6 +6,9 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\MpesaController;
 
 // Public Routes
 Route::get('/', [LandingController::class, 'index'])->name('landing');
@@ -16,6 +19,9 @@ Route::get('/marketplace/product/{product:slug}', [MarketplaceController::class,
 
 // Contact Form Submission
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+
+// Order Routes (global)
+Route::post('/order/create/{product}', [OrderController::class, 'createOrder'])->name('order.create');
 
 // Guest Routes
 Route::middleware('guest')->group(function () {
@@ -30,29 +36,34 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->midd
 // Authenticated Routes
 Route::middleware('auth')->group(function () {
 
-    // Profile Routes - Complete with password update
+    // Profile Routes
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password', [App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::delete('/profile', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Cart
+    // Cart Routes
     Route::prefix('cart')->name('cart.')->group(function () {
-        Route::get('/', [App\Http\Controllers\CartController::class, 'index'])->name('index');
-        Route::post('/add/{product}', [App\Http\Controllers\CartController::class, 'add'])->name('add');
-        Route::patch('/update/{cart}', [App\Http\Controllers\CartController::class, 'update'])->name('update');
-        Route::delete('/remove/{cart}', [App\Http\Controllers\CartController::class, 'remove'])->name('remove');
-        Route::delete('/clear', [App\Http\Controllers\CartController::class, 'clear'])->name('clear');
-        Route::get('/checkout', [App\Http\Controllers\CartController::class, 'checkout'])->name('checkout');
-        Route::post('/checkout', [App\Http\Controllers\CartController::class, 'processCheckout'])->name('process');
+        Route::get('/', [CartController::class, 'index'])->name('index');
+        Route::post('/add/{product}', [CartController::class, 'add'])->name('add');
+        Route::patch('/update/{cart}', [CartController::class, 'update'])->name('update');
+        Route::delete('/remove/{cart}', [CartController::class, 'remove'])->name('remove');
+        Route::delete('/clear', [CartController::class, 'clear'])->name('clear');
+        Route::get('/checkout', [CartController::class, 'checkout'])->name('checkout');
+        Route::post('/checkout', [CartController::class, 'processCheckout'])->name('process');
     });
 
-    // Admin Routes - Complete CRUD
+    // M-Pesa Routes
+    Route::prefix('mpesa')->name('mpesa.')->group(function () {
+        Route::post('/initiate', [MpesaController::class, 'initiatePayment'])->name('initiate');
+        Route::post('/simulate', [MpesaController::class, 'simulatePayment'])->name('simulate');
+        Route::get('/status', [MpesaController::class, 'checkPaymentStatus'])->name('status');
+        Route::post('/verify', [MpesaController::class, 'verifyNumber'])->name('verify');
+    });
+
+    // Admin Routes
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        // Dashboard
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-        
-        // Users Management - Full CRUD
         Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [App\Http\Controllers\Admin\UserController::class, 'create'])->name('users.create');
         Route::post('/users', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('users.store');
@@ -62,21 +73,17 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
         Route::patch('/users/{user}/toggle', [App\Http\Controllers\Admin\UserController::class, 'toggleActive'])->name('users.toggle');
         
-        // Products Management
         Route::get('/products', [App\Http\Controllers\Admin\ProductController::class, 'index'])->name('products.index');
         Route::get('/products/{product}', [App\Http\Controllers\Admin\ProductController::class, 'show'])->name('products.show');
         Route::delete('/products/{product}', [App\Http\Controllers\Admin\ProductController::class, 'destroy'])->name('products.destroy');
         Route::patch('/products/{product}/status', [App\Http\Controllers\Admin\ProductController::class, 'updateStatus'])->name('products.status');
         
-        // Orders Management
         Route::get('/orders', [App\Http\Controllers\Admin\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [App\Http\Controllers\Admin\OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('orders.status');
         
-        // Reports
         Route::get('/reports', [App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
         
-        // Contact Messages
         Route::get('/contact', [App\Http\Controllers\Admin\ContactController::class, 'index'])->name('contact.index');
         Route::get('/contact/{message}', [App\Http\Controllers\Admin\ContactController::class, 'show'])->name('contact.show');
         Route::delete('/contact/{message}', [App\Http\Controllers\Admin\ContactController::class, 'destroy'])->name('contact.destroy');
@@ -88,12 +95,16 @@ Route::middleware('auth')->group(function () {
         
         // Products Management
         Route::resource('products', App\Http\Controllers\Farmer\ProductController::class);
-        Route::get('/products/purchased', [App\Http\Controllers\Farmer\ProductController::class, 'purchased'])->name('products.purchased');
         
-        // Products Marketplace (Farmer to Farmer)
+        // My Orders - ONLY ONCE
+        Route::get('/my-orders', [App\Http\Controllers\Farmer\ProductController::class, 'myOrders'])->name('my-orders');
+        
+        // Farmer to Farmer Marketplace
         Route::get('/products-marketplace', [App\Http\Controllers\Farmer\ProductController::class, 'marketplace'])->name('products.marketplace');
         Route::get('/products-view/{id}', [App\Http\Controllers\Farmer\ProductController::class, 'viewProduct'])->name('products.view');
         Route::get('/products-contact/{productId}', [App\Http\Controllers\Farmer\ProductController::class, 'contactSeller'])->name('products.contact');
+        
+        // Agrovet Products for Farmers to Buy
         Route::get('/agrovet-products', [App\Http\Controllers\Farmer\ProductController::class, 'agrovetProducts'])->name('products.agrovet');
         Route::get('/view-agrovet/{id}', [App\Http\Controllers\Farmer\ProductController::class, 'viewAgrovet'])->name('products.viewAgrovet');
 
@@ -113,7 +124,7 @@ Route::middleware('auth')->group(function () {
         // Consultations
         Route::resource('consultations', App\Http\Controllers\Farmer\ConsultationController::class)->only(['index', 'create', 'store', 'show']);
 
-        // Farmer Messages
+        // Messages
         Route::prefix('messages')->name('messages.')->group(function () {
             Route::get('/', [App\Http\Controllers\Farmer\MessageController::class, 'index'])->name('index');
             Route::get('/create', [App\Http\Controllers\Farmer\MessageController::class, 'create'])->name('create');
@@ -132,22 +143,25 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:agrovet')->prefix('agrovet')->name('agrovet.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Agrovet\DashboardController::class, 'index'])->name('dashboard');
         
-        // Products
         Route::resource('products', App\Http\Controllers\Agrovet\ProductController::class);
         Route::patch('/products/{product}/stock', [App\Http\Controllers\Agrovet\ProductController::class, 'updateStock'])->name('products.stock');
 
-        // Orders
         Route::get('/orders', [App\Http\Controllers\Agrovet\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [App\Http\Controllers\Agrovet\OrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [App\Http\Controllers\Agrovet\OrderController::class, 'updateStatus'])->name('orders.status');
         Route::patch('/orders/{order}/approve-payment', [App\Http\Controllers\Agrovet\OrderController::class, 'approvePayment'])->name('orders.approvePayment');
+        
+        // Order Management Actions
+        Route::patch('/orders/{order}/approve', [App\Http\Controllers\Agrovet\OrderController::class, 'approveOrder'])->name('orders.approve');
+        Route::patch('/orders/{order}/ship', [App\Http\Controllers\Agrovet\OrderController::class, 'shipOrder'])->name('orders.ship');
+        Route::patch('/orders/{order}/deliver', [App\Http\Controllers\Agrovet\OrderController::class, 'deliverOrder'])->name('orders.deliver');
+        Route::patch('/orders/{order}/complete', [App\Http\Controllers\Agrovet\OrderController::class, 'completeOrder'])->name('orders.complete');
+        Route::patch('/orders/{order}/cancel', [App\Http\Controllers\Agrovet\OrderController::class, 'cancelOrder'])->name('orders.cancel');
 
-        // Advice
         Route::get('/advice', [App\Http\Controllers\Agrovet\AdviceController::class, 'index'])->name('advice.index');
         Route::get('/advice/{adviceRequest}', [App\Http\Controllers\Agrovet\AdviceController::class, 'show'])->name('advice.show');
         Route::post('/advice/{adviceRequest}/respond', [App\Http\Controllers\Agrovet\AdviceController::class, 'respond'])->name('advice.respond');
 
-        // Consultations
         Route::prefix('consultations')->name('consultations.')->group(function () {
             Route::get('/', [App\Http\Controllers\Agrovet\ConsultationController::class, 'index'])->name('index');
             Route::get('/pending', [App\Http\Controllers\Agrovet\ConsultationController::class, 'pending'])->name('pending');
@@ -158,12 +172,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/{consultation}/respond', [App\Http\Controllers\Agrovet\ConsultationController::class, 'respond'])->name('respond');
         });
 
-        // Messages
         Route::get('/messages', [App\Http\Controllers\Agrovet\MessageController::class, 'index'])->name('messages.index');
         Route::get('/messages/{farmer}', [App\Http\Controllers\Agrovet\MessageController::class, 'show'])->name('messages.show');
         Route::post('/messages/{farmer}', [App\Http\Controllers\Agrovet\MessageController::class, 'send'])->name('messages.send');
 
-        // Analytics
         Route::get('/analytics', [App\Http\Controllers\Agrovet\AnalyticsController::class, 'index'])->name('analytics.index');
     });
 });

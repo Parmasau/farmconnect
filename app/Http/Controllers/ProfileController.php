@@ -20,36 +20,39 @@ class ProfileController extends Controller
     {
         $user = Auth::user();
         
-        $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string|max:20',
             'business_name' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'bio' => 'nullable|string|max:500',
-        ]);
-
-        // Only update fields that exist
-        $updateData = [
-            'name' => $request->name,
-            'email' => $request->email,
         ];
         
-        // Add optional fields if they exist in request
-        if ($request->has('phone')) {
-            $updateData['phone'] = $request->phone;
+        // Role-specific validation
+        if ($user->isFarmer()) {
+            $rules['phone'] = 'nullable|string|max:20';
+            $rules['mpesa_number'] = 'nullable|string|max:20';
         }
-        if ($request->has('business_name')) {
-            $updateData['business_name'] = $request->business_name;
+        
+        if ($user->isAgrovet()) {
+            $rules['till_number'] = 'nullable|string|max:20';
         }
-        if ($request->has('address')) {
-            $updateData['address'] = $request->address;
+        
+        $request->validate($rules);
+        
+        // Prepare data for update
+        $data = $request->only(['name', 'email', 'business_name', 'address', 'bio']);
+        
+        if ($user->isFarmer()) {
+            $data['phone'] = $request->phone;
+            $data['mpesa_number'] = $request->mpesa_number;
         }
-        if ($request->has('bio')) {
-            $updateData['bio'] = $request->bio;
+        
+        if ($user->isAgrovet()) {
+            $data['till_number'] = $request->till_number;
         }
-
-        $user->update($updateData);
+        
+        $user->update($data);
 
         return redirect()->route('profile.edit')
                          ->with('success', 'Profile updated successfully!');

@@ -1,51 +1,85 @@
-@extends('layouts.app')
-@section('title', 'Checkout')
-@section('content')
-<div class="max-w-4xl mx-auto space-y-6">
-    <div class="rounded-3xl bg-white p-6 shadow-sm">
-        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-                <p class="text-sm uppercase tracking-[0.3em] text-green-600">Checkout</p>
-                <h1 class="text-3xl font-bold text-gray-900">Confirm your order</h1>
-            </div>
-            <div class="rounded-full bg-green-50 px-4 py-2 text-green-700">Total: KES {{ number_format($total, 2) }}</div>
-        </div>
-    </div>
+{{-- resources/views/cart/checkout.blade.php --}}
+@extends('layouts.dashboard')
 
-    <div class="rounded-3xl bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-semibold text-gray-900">Items in your cart</h2>
-        <div class="mt-4 space-y-4">
-            @foreach($items as $item)
-                <div class="rounded-3xl border border-gray-100 p-4">
-                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+@section('title', 'Checkout - FarmNest')
+
+@section('sidebar')
+    @include('farmer.sidebar')
+@endsection
+
+@section('content')
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
+        <h1 class="text-2xl font-bold mb-6">Checkout</h1>
+
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Order Summary -->
+            <div>
+                <h2 class="text-lg font-semibold mb-4">Order Summary</h2>
+                <div class="space-y-3">
+                    @foreach($cartItems as $item)
+                    <div class="flex justify-between items-center py-2 border-b">
                         <div>
-                            <p class="font-semibold text-gray-900">{{ $item->product->name }}</p>
-                            <p class="text-sm text-gray-500">Seller: {{ $item->product->owner->name }}</p>
+                            <p class="font-medium">{{ $item->product->name }}</p>
+                            <p class="text-sm text-gray-500">Quantity: {{ $item->quantity }}</p>
                         </div>
-                        <div class="text-right">
-                            <p class="font-semibold text-gray-900">KES {{ number_format($item->product->price, 2) }} x {{ $item->quantity }}</p>
-                            <p class="text-sm text-gray-500">Subtotal: KES {{ number_format($item->quantity * $item->product->price, 2) }}</p>
-                        </div>
+                        <p class="font-semibold">KSh {{ number_format($item->product->price * $item->quantity, 2) }}</p>
+                    </div>
+                    @endforeach
+                    <div class="flex justify-between items-center pt-3 font-bold">
+                        <p>Total:</p>
+                        <p class="text-green-700 text-xl">KSh {{ number_format($total, 2) }}</p>
                     </div>
                 </div>
-            @endforeach
+            </div>
+
+            <!-- Checkout Form -->
+            <div>
+                <h2 class="text-lg font-semibold mb-4">Shipping & Payment</h2>
+                <form method="POST" action="{{ route('cart.process') }}">
+                    @csrf
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Address *</label>
+                        <textarea name="shipping_address" rows="3" 
+                                  class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500"
+                                  required>{{ old('shipping_address') }}</textarea>
+                        @error('shipping_address')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method *</label>
+                        <select name="payment_method" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500" required>
+                            <option value="">Select payment method</option>
+                            <option value="mpesa">M-Pesa</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash_on_delivery">Cash on Delivery</option>
+                        </select>
+                        @error('payment_method')
+                            <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="bg-yellow-50 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle"></i> 
+                            By placing this order, you agree to our terms and conditions.
+                        </p>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button type="submit" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">
+                            Place Order
+                        </button>
+                        <a href="{{ route('cart.index') }}" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg text-center hover:bg-gray-400">
+                            Back to Cart
+                        </a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-
-    <form method="POST" action="{{ route('cart.process') }}" class="rounded-3xl bg-white p-6 shadow-sm space-y-6">
-        @csrf
-        <div>
-            <label class="text-sm font-medium text-gray-700">Delivery Address</label>
-            <textarea name="delivery_address" rows="4" required class="mt-2 w-full rounded-3xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100">{{ old('delivery_address') }}</textarea>
-            @error('delivery_address') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
-        </div>
-
-        <div>
-            <label class="text-sm font-medium text-gray-700">Notes</label>
-            <textarea name="notes" rows="3" class="mt-2 w-full rounded-3xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-100">{{ old('notes') }}</textarea>
-        </div>
-
-        <button type="submit" class="w-full rounded-3xl bg-green-700 px-6 py-3 text-sm font-semibold text-white hover:bg-green-800">Place Order & Pay</button>
-    </form>
 </div>
 @endsection

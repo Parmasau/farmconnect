@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Farmer;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,7 +16,7 @@ class ConsultationController extends Controller
     {
         $consultations = Consultation::where('farmer_id', Auth::id())
                                     ->with('agrovet')
-                                    ->latest()
+                                    ->orderBy('created_at', 'desc')
                                     ->paginate(10);
         
         return view('farmer.consultations.index', compact('consultations'));
@@ -23,7 +24,11 @@ class ConsultationController extends Controller
 
     public function create()
     {
-        $agrovets = User::where('role', 'agrovet')->where('is_active', true)->get();
+        $agrovets = User::where('role', 'agrovet')
+                       ->where('is_active', true)
+                       ->orderBy('name')
+                       ->get();
+        
         return view('farmer.consultations.create', compact('agrovets'));
     }
 
@@ -44,11 +49,20 @@ class ConsultationController extends Controller
             'description' => $request->description,
             'type' => $request->type,
             'scheduled_at' => $request->scheduled_at,
-            'status' => 'requested', // Change from 'pending' to 'requested'
+            'status' => 'pending',
+        ]);
+
+        // Create notification only for the selected agrovet
+        Notification::create([
+            'user_id' => $request->agrovet_id,
+            'title' => 'New Consultation Request',
+            'message' => Auth::user()->name . ' has requested a consultation: ' . $request->topic,
+            'type' => 'consultation',
+            'data' => ['consultation_id' => $consultation->id],
         ]);
 
         return redirect()->route('farmer.consultations.index')
-                         ->with('success', 'Consultation request sent successfully!');
+                         ->with('success', 'Consultation request sent successfully to ' . $consultation->agrovet->name . '!');
     }
 
     public function show(Consultation $consultation)
@@ -63,6 +77,15 @@ class ConsultationController extends Controller
         abort_if($consultation->farmer_id !== Auth::id(), 403);
         
         $consultation->update(['status' => 'cancelled']);
+        
+        // Notify the agrovet about cancellation
+        Notification::create([
+            'user_id' => $consultation->agrovet_id,
+            'title' => 'Consultation Cancelled',
+            'message' => Auth::user()->name . ' has cancelled the consultation: ' . $consultation->topic,
+            'type' => 'consultation',
+            'data' => ['consultation_id' => $consultation->id],
+        ]);
         
         return redirect()->route('farmer.consultations.index')
                          ->with('success', 'Consultation cancelled successfully.');

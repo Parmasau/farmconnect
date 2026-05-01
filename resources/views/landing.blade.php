@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FarmConnect — Connecting Farmers & Agrovets</title>
+    <title>FarmNest — Connecting Farmers & Agrovets</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -48,19 +48,16 @@
             transition: all 0.3s ease;
         }
         
-        /* Active button styles */
         .btn-active {
             transform: scale(1.05);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
         
-        /* Navigation link active state */
         .nav-link-active {
             border-bottom: 2px solid white;
             padding-bottom: 4px;
         }
         
-        /* Smooth section highlighting */
         .section-highlight {
             transition: all 0.3s ease;
         }
@@ -68,22 +65,38 @@
             background-color: rgba(22, 163, 74, 0.1);
             border-radius: 20px;
         }
+        
+        .footer-link {
+            transition: all 0.3s ease;
+        }
+        .footer-link:hover {
+            transform: translateX(5px);
+            color: white;
+        }
+        
+        .social-icon {
+            transition: all 0.3s ease;
+        }
+        .social-icon:hover {
+            transform: scale(1.15);
+            background-color: #15803d;
+        }
     </style>
 </head>
 <body class="bg-farm min-h-screen">
-    <!-- Navigation Bar for Landing Page -->
+    <!-- Navigation Bar -->
     <nav class="fixed top-0 left-0 right-0 bg-green-800/95 backdrop-blur-sm z-50 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
-                <a href="#" class="text-white text-xl font-bold flex items-center gap-2">
-                    <i class="fas fa-seedling"></i> FarmConnect
+                <a href="{{ route('landing') }}" class="text-white text-xl font-bold flex items-center gap-2">
+                    <i class="fas fa-seedling"></i> FarmNest
                 </a>
                 <div class="hidden md:flex space-x-6">
-                    <a href="#home" class="nav-link text-white hover:text-green-200 transition" data-section="home">Home</a>
-                    <a href="#about" class="nav-link text-white hover:text-green-200 transition" data-section="about">About</a>
-                    <a href="#features" class="nav-link text-white hover:text-green-200 transition" data-section="features">Features</a>
-                    <a href="#stats" class="nav-link text-white hover:text-green-200 transition" data-section="stats">Stats</a>
-                    <a href="#contact" class="nav-link text-white hover:text-green-200 transition" data-section="contact">Contact</a>
+                    <a href="{{ route('landing') }}#home" class="nav-link text-white hover:text-green-200 transition" data-section="home">Home</a>
+                    <a href="{{ route('landing') }}#about" class="nav-link text-white hover:text-green-200 transition" data-section="about">About</a>
+                    <a href="{{ route('landing') }}#features" class="nav-link text-white hover:text-green-200 transition" data-section="features">Features</a>
+                    <a href="{{ route('landing') }}#stats" class="nav-link text-white hover:text-green-200 transition" data-section="stats">Stats</a>
+                    <a href="{{ route('landing') }}#contact" class="nav-link text-white hover:text-green-200 transition" data-section="contact">Contact</a>
                 </div>
                 <div class="flex gap-3">
                     <a href="{{ route('login') }}" class="login-btn bg-transparent border border-white text-white px-4 py-2 rounded-lg hover:bg-white hover:text-green-800 transition">Login</a>
@@ -96,15 +109,15 @@
     <!-- Hero Section -->
     <section id="home" class="min-h-screen flex items-center justify-center pt-16">
         <div class="text-center text-white px-4">
-            <h1 class="text-5xl md:text-6xl font-bold mb-4 animate-fade-in">Welcome to FarmConnect</h1>
+            <h1 class="text-5xl md:text-6xl font-bold mb-4 animate-fade-in">Welcome to FarmNest</h1>
             <p class="text-xl md:text-2xl mb-8 animate-fade-in">Connecting Farmers & Agrovets for a Sustainable Future</p>
             <div class="flex gap-4 justify-center flex-wrap animate-fade-in">
-                <button onclick="redirectToLogin()" class="login-hero-btn bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition duration-300 transform hover:scale-105">
+                <a href="{{ route('login') }}" class="login-hero-btn bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition duration-300 transform hover:scale-105">
                     Login
-                </button>
-                <button onclick="redirectToRegister()" class="register-hero-btn bg-white hover:bg-gray-100 text-green-700 px-8 py-3 rounded-lg font-semibold transition duration-300 transform hover:scale-105">
+                </a>
+                <a href="{{ route('register') }}" class="register-hero-btn bg-white hover:bg-gray-100 text-green-700 px-8 py-3 rounded-lg font-semibold transition duration-300 transform hover:scale-105">
                     Register
-                </button>
+                </a>
             </div>
         </div>
     </section>
@@ -113,7 +126,7 @@
     <section id="about" class="py-16 bg-white section-highlight">
         <div class="max-w-7xl mx-auto px-4">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-green-800 mb-4">About FarmConnect</h2>
+                <h2 class="text-3xl md:text-4xl font-bold text-green-800 mb-4">About FarmNest</h2>
                 <div class="w-24 h-1 bg-green-600 mx-auto"></div>
             </div>
             
@@ -122,13 +135,13 @@
                     <div class="text-5xl mb-4">🌾</div>
                     <h3 class="text-xl font-semibold mb-2">For Farmers</h3>
                     <p class="text-gray-600">Sell your produce directly to buyers, get expert advice, and connect with agrovets for quality inputs.</p>
-                    <button onclick="redirectToRegister()" class="mt-4 text-green-600 hover:text-green-700 font-semibold">Join Now →</button>
+                    <a href="{{ route('register') }}" class="mt-4 inline-block text-green-600 hover:text-green-700 font-semibold">Join Now →</a>
                 </div>
                 <div class="text-center p-6 hover:shadow-lg transition rounded-xl">
                     <div class="text-5xl mb-4">🔬</div>
                     <h3 class="text-xl font-semibold mb-2">For Agrovets</h3>
                     <p class="text-gray-600">Reach more farmers, offer quality products, and provide expert agricultural advice.</p>
-                    <button onclick="redirectToRegister()" class="mt-4 text-green-600 hover:text-green-700 font-semibold">Partner With Us →</button>
+                    <a href="{{ route('register') }}" class="mt-4 inline-block text-green-600 hover:text-green-700 font-semibold">Partner With Us →</a>
                 </div>
                 <div class="text-center p-6 hover:shadow-lg transition rounded-xl">
                     <div class="text-5xl mb-4">🤝</div>
@@ -143,7 +156,7 @@
     <section id="features" class="py-16 bg-gray-50 section-highlight">
         <div class="max-w-7xl mx-auto px-4">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-green-800 mb-4">Why Choose FarmConnect?</h2>
+                <h2 class="text-3xl md:text-4xl font-bold text-green-800 mb-4">Why Choose FarmNest?</h2>
                 <div class="w-24 h-1 bg-green-600 mx-auto"></div>
             </div>
             
@@ -256,7 +269,7 @@
                         <div class="text-2xl">✉️</div>
                         <div>
                             <h3 class="font-semibold">Email Us</h3>
-                            <p class="text-gray-600">info@farmconnect.co.ke</p>
+                            <p class="text-gray-600">info@farmnest.co.ke</p>
                         </div>
                     </div>
                     <div class="flex items-start gap-4">
@@ -275,39 +288,68 @@
     <footer class="bg-green-900 text-white py-8">
         <div class="max-w-7xl mx-auto px-4">
             <div class="grid md:grid-cols-4 gap-8">
+                <!-- Brand Column -->
                 <div>
-                    <h3 class="font-bold text-lg mb-3">FarmConnect</h3>
+                    <h3 class="font-bold text-lg mb-3">FarmNest</h3>
                     <p class="text-green-300 text-sm">Connecting Farmers & Agrovets across Kenya</p>
                 </div>
+                
+                <!-- Quick Links Column -->
                 <div>
                     <h3 class="font-bold text-lg mb-3">Quick Links</h3>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="#home" class="text-green-300 hover:text-white transition">Home</a></li>
-                        <li><a href="#about" class="text-green-300 hover:text-white transition">About</a></li>
-                        <li><a href="#features" class="text-green-300 hover:text-white transition">Features</a></li>
-                        <li><a href="#contact" class="text-green-300 hover:text-white transition">Contact</a></li>
+                        <li><a href="{{ route('landing') }}#home" class="footer-link text-green-300 hover:text-white transition block">🏠 Home</a></li>
+                        <li><a href="{{ route('landing') }}#about" class="footer-link text-green-300 hover:text-white transition block">📖 About</a></li>
+                        <li><a href="{{ route('landing') }}#features" class="footer-link text-green-300 hover:text-white transition block">⭐ Features</a></li>
+                        <li><a href="{{ route('landing') }}#stats" class="footer-link text-green-300 hover:text-white transition block">📊 Statistics</a></li>
+                        <li><a href="{{ route('landing') }}#contact" class="footer-link text-green-300 hover:text-white transition block">📞 Contact</a></li>
                     </ul>
                 </div>
+                
+                <!-- Support Column -->
                 <div>
                     <h3 class="font-bold text-lg mb-3">Support</h3>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="text-green-300 hover:text-white">Help Center</a></li>
-                        <li><a href="#" class="text-green-300 hover:text-white">Terms of Service</a></li>
-                        <li><a href="#" class="text-green-300 hover:text-white">Privacy Policy</a></li>
+                        <li><a href="{{ route('login') }}" class="footer-link text-green-300 hover:text-white transition block">🔐 Login</a></li>
+                        <li><a href="{{ route('register') }}" class="footer-link text-green-300 hover:text-white transition block">📝 Register</a></li>
+                        <li><a href="{{ route('farmer.products.marketplace') }}" class="footer-link text-green-300 hover:text-white transition block">🛒 Marketplace</a></li>
+                        <li><a href="{{ route('farmer.advice.index') }}" class="footer-link text-green-300 hover:text-white transition block">💡 Expert Advice</a></li>
+                        <li><a href="{{ route('cart.index') }}" class="footer-link text-green-300 hover:text-white transition block">🛍️ Shopping Cart</a></li>
                     </ul>
                 </div>
+                
+                <!-- Follow Us Column -->
                 <div>
                     <h3 class="font-bold text-lg mb-3">Follow Us</h3>
-                    <div class="flex space-x-4">
-                        <a href="#" class="text-green-300 hover:text-white text-xl transition transform hover:scale-110"><i class="fab fa-facebook"></i></a>
-                        <a href="#" class="text-green-300 hover:text-white text-xl transition transform hover:scale-110"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-green-300 hover:text-white text-xl transition transform hover:scale-110"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="text-green-300 hover:text-white text-xl transition transform hover:scale-110"><i class="fab fa-linkedin"></i></a>
+                    <div class="flex space-x-4 mb-4">
+                        <a href="https://facebook.com" target="_blank" class="bg-green-700 hover:bg-green-600 w-10 h-10 rounded-full flex items-center justify-center transition transform hover:scale-110 social-icon">
+                            <i class="fab fa-facebook-f text-white"></i>
+                        </a>
+                        <a href="https://twitter.com" target="_blank" class="bg-green-700 hover:bg-green-600 w-10 h-10 rounded-full flex items-center justify-center transition transform hover:scale-110 social-icon">
+                            <i class="fab fa-twitter text-white"></i>
+                        </a>
+                        <a href="https://instagram.com" target="_blank" class="bg-green-700 hover:bg-green-600 w-10 h-10 rounded-full flex items-center justify-center transition transform hover:scale-110 social-icon">
+                            <i class="fab fa-instagram text-white"></i>
+                        </a>
+                        <a href="https://linkedin.com" target="_blank" class="bg-green-700 hover:bg-green-600 w-10 h-10 rounded-full flex items-center justify-center transition transform hover:scale-110 social-icon">
+                            <i class="fab fa-linkedin-in text-white"></i>
+                        </a>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-green-300 text-sm">Stay connected for updates!</p>
+                        <p class="text-green-400 text-xs mt-1">Newsletter coming soon</p>
                     </div>
                 </div>
             </div>
             <div class="border-t border-green-800 mt-8 pt-6 text-center text-sm text-green-300">
-                <p>&copy; {{ date('Y') }} FarmConnect. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} FarmNest. All rights reserved.</p>
+                <p class="mt-2">
+                    <a href="{{ route('landing') }}#home" class="hover:text-white transition mx-2">Home</a> |
+                    <a href="{{ route('landing') }}#about" class="hover:text-white transition mx-2">About</a> |
+                    <a href="{{ route('landing') }}#contact" class="hover:text-white transition mx-2">Contact</a> |
+                    <a href="#" class="hover:text-white transition mx-2" onclick="alert('Privacy Policy coming soon!'); return false;">Privacy Policy</a> |
+                    <a href="#" class="hover:text-white transition mx-2" onclick="alert('Terms of Service coming soon!'); return false;">Terms</a>
+                </p>
             </div>
         </div>
     </footer>
@@ -364,7 +406,8 @@
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
+                const hash = this.getAttribute('href').split('#')[1];
+                const target = document.getElementById(hash);
                 if (target) {
                     target.scrollIntoView({
                         behavior: 'smooth',
@@ -416,7 +459,7 @@
         });
         
         // Button active state styling
-        const buttons = document.querySelectorAll('button, .login-btn, .register-btn, .login-hero-btn, .register-hero-btn');
+        const buttons = document.querySelectorAll('button, a.btn-active-trigger, .login-btn, .register-btn, .login-hero-btn, .register-hero-btn');
         
         buttons.forEach(button => {
             button.addEventListener('click', function(e) {

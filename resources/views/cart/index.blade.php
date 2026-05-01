@@ -1,51 +1,113 @@
-@extends('layouts.app')
-@section('title', 'Shopping Cart')
+{{-- resources/views/cart/index.blade.php --}}
+@extends('layouts.dashboard')
+
+@section('title', 'My Cart - FarmNest')
+
+@section('sidebar')
+    @auth
+        @if(auth()->user()->isFarmer())
+            @include('farmer.sidebar')
+        @elseif(auth()->user()->isAgrovet())
+            @include('agrovet.sidebar')
+        @else
+            @include('admin.sidebar')
+        @endif
+    @endauth
+@endsection
+
 @section('content')
-<div class="max-w-3xl mx-auto">
-    <h1 class="text-xl font-bold mb-4">Shopping Cart</h1>
-    @if($items->isEmpty())
-        <div class="bg-white rounded-xl shadow p-10 text-center text-gray-400">
-            Your cart is empty. <a href="{{ route('marketplace.index') }}" class="text-green-700 underline">Browse marketplace</a>
+<div class="bg-white/95 backdrop-blur-sm rounded-xl shadow p-6">
+    <h1 class="text-2xl font-bold mb-6">Shopping Cart</h1>
+
+    @if(session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($cartItems->count() > 0)
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Product</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Price</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Quantity</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Total</th>
+                        <th class="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @foreach($cartItems as $item)
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <img src="{{ $item->product->image_url }}" class="w-12 h-12 object-cover rounded">
+                                <div>
+                                    <p class="font-medium">{{ $item->product->name }}</p>
+                                    <p class="text-xs text-gray-500">by {{ $item->product->farmer->name ?? $item->product->seller->name ?? 'Seller' }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">KSh {{ number_format($item->product->price, 2) }}</td>
+                        <td class="px-4 py-3">
+                            <form action="{{ route('cart.update', $item) }}" method="POST" class="flex items-center gap-2">
+                                @csrf
+                                @method('PATCH')
+                                <input type="number" name="quantity" value="{{ $item->quantity }}" 
+                                       min="1" max="{{ $item->product->quantity }}"
+                                       class="w-20 border rounded-lg px-2 py-1 text-center">
+                                <button type="submit" class="text-blue-600 hover:underline text-sm">Update</button>
+                            </form>
+                        </td>
+                        <td class="px-4 py-3 font-semibold">KSh {{ number_format($item->product->price * $item->quantity, 2) }}</td>
+                        <td class="px-4 py-3">
+                            <form action="{{ route('cart.remove', $item) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:underline text-sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="3" class="px-4 py-3 text-right font-bold">Total:</td>
+                        <td class="px-4 py-3 font-bold text-green-700">KSh {{ number_format($total, 2) }}</td>
+                        <td class="px-4 py-3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div class="flex justify-between items-center mt-6">
+            <form action="{{ route('cart.clear') }}" method="POST">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700" onclick="return confirm('Clear entire cart?')">
+                    Clear Cart
+                </button>
+            </form>
+            <a href="{{ route('cart.checkout') }}" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                Proceed to Checkout
+            </a>
         </div>
     @else
-    <div class="bg-white rounded-xl shadow overflow-hidden mb-4">
-        <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-xs uppercase text-gray-500"><tr><th class="px-4 py-3 text-left">Product</th><th class="px-4 py-3 text-right">Price</th><th class="px-4 py-3 text-right">Qty</th><th class="px-4 py-3 text-right">Subtotal</th><th class="px-4 py-3"></th></tr></thead>
-            <tbody class="divide-y">
-                @foreach($items as $item)
-                <tr>
-                    <td class="px-4 py-3">
-                        <p class="font-medium">{{ $item->product->name }}</p>
-                        <p class="text-xs text-gray-400">by {{ $item->product->owner->name }}</p>
-                    </td>
-                    <td class="px-4 py-3 text-right">KES {{ number_format($item->product->price,2) }}</td>
-                    <td class="px-4 py-3 text-right">
-                        <form method="POST" action="{{ route('cart.update', $item) }}" class="flex justify-end gap-1">
-                            @csrf @method('PATCH')
-                            <input type="number" name="quantity" value="{{ $item->quantity }}" min="1" max="{{ $item->product->quantity }}" class="w-16 border rounded px-2 py-0.5 text-xs text-center">
-                            <button class="text-xs text-green-700 hover:underline">Update</button>
-                        </form>
-                    </td>
-                    <td class="px-4 py-3 text-right font-semibold">KES {{ number_format($item->quantity * $item->product->price,2) }}</td>
-                    <td class="px-4 py-3">
-                        <form method="POST" action="{{ route('cart.remove', $item) }}">@csrf @method('DELETE')
-                            <button class="text-red-500 hover:text-red-700">✕</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                <tr class="border-t-2 font-bold"><td colspan="3" class="px-4 py-3 text-right">Total</td><td class="px-4 py-3 text-right text-green-700 text-lg">KES {{ number_format($total,2) }}</td><td></td></tr>
-            </tfoot>
-        </table>
-    </div>
-    <div class="flex justify-between">
-        <form method="POST" action="{{ route('cart.clear') }}">@csrf @method('DELETE')
-            <button class="text-red-500 hover:underline text-sm" onclick="return confirm('Clear cart?')">Clear Cart</button>
-        </form>
-        <a href="{{ route('cart.checkout') }}" class="bg-green-700 text-white px-6 py-2 rounded-lg hover:bg-green-800 font-semibold">Proceed to Checkout →</a>
-    </div>
+        <div class="text-center py-12">
+            <div class="text-6xl mb-4">🛒</div>
+            <h3 class="text-lg font-medium mb-2">Your Cart is Empty</h3>
+            <p class="text-gray-500 mb-4">Start shopping to add items to your cart.</p>
+            <a href="{{ route('farmer.products.marketplace') }}" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                Browse Products
+            </a>
+        </div>
     @endif
 </div>
 @endsection
